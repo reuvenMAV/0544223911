@@ -1,0 +1,478 @@
+{
+  "name": "Intent Router with Specialist Agents (OpenRouter)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "intent-router",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "1",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -1320,
+        100
+      ],
+      "webhookId": "intent-router-webhook"
+    },
+    {
+      "parameters": {
+        "mode": "manual",
+        "assignments": {
+          "assignments": [
+            {
+              "name": "user_id",
+              "value": "={{$json.body?.user_id || $json.user_id || $json.message?.from?.id || $json.chat_id || 'anonymous'}}",
+              "type": "string"
+            },
+            {
+              "name": "message",
+              "value": "={{$json.body?.message || $json.message?.text || $json.text || ''}}",
+              "type": "string"
+            },
+            {
+              "name": "channel",
+              "value": "={{$json.body?.channel || ($json.message?.chat ? 'telegram' : 'webhook')}}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "2",
+      "name": "Normalize Input",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1080,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const store = this.getWorkflowStaticData('global');\nif (!store.memoryByUser) {\n  store.memoryByUser = {};\n}\n\nconst userId = $json.user_id || 'anonymous';\nconst memory = store.memoryByUser[userId] || {\n  last_message: '',\n  last_intent: 'general',\n  history: []\n};\n\nreturn [\n  {\n    json: {\n      ...$json,\n      memory\n    }\n  }\n];"
+      },
+      "id": "3",
+      "name": "Load Memory",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -860,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://openrouter.ai/api/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$env.OPENROUTER_API_KEY}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {\n  model: $env.OPENROUTER_MODEL || 'openai/gpt-4o-mini',\n  temperature: 0,\n  max_tokens: 50,\n  messages: [\n    {\n      role: 'system',\n      content: 'You are an intent classifier.\\n\\nClassify the user message into one of these intents:\\n- billing\\n- general\\n- support\\n- service\\n\\nReturn ONLY valid JSON in this format:\\n{\\n  \"intent\": \"...\",\\n  \"confidence\": 0-1\\n}\\n'\n    },\n    {\n      role: 'user',\n      content: $json.message\n    }\n  ]\n} }}",
+        "options": {}
+      },
+      "id": "4",
+      "name": "Router Agent",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -640,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const base = $item(0).$node['Load Memory'].json;\nconst raw = $json.choices?.[0]?.message?.content ?? '';\n\nlet parsed;\ntry {\n  parsed = JSON.parse(raw);\n} catch (error) {\n  parsed = { intent: 'general', confidence: 0 };\n}\n\nconst validIntents = ['billing', 'general', 'support', 'service'];\nlet intent = validIntents.includes(parsed.intent) ? parsed.intent : 'general';\nlet confidence = Number(parsed.confidence ?? 0);\nif (!Number.isFinite(confidence)) {\n  confidence = 0;\n}\n\nif (confidence < 0.6) {\n  intent = 'general';\n}\n\nreturn [\n  {\n    json: {\n      ...base,\n      router_raw: raw,\n      intent,\n      confidence\n    }\n  }\n];"
+      },
+      "id": "5",
+      "name": "Parse Router JSON",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -420,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "dataType": "string",
+        "value1": "={{$json.intent}}",
+        "rules": {
+          "values": [
+            {
+              "operation": "equal",
+              "value2": "billing"
+            },
+            {
+              "operation": "equal",
+              "value2": "general"
+            },
+            {
+              "operation": "equal",
+              "value2": "support"
+            },
+            {
+              "operation": "equal",
+              "value2": "service"
+            }
+          ]
+        },
+        "fallbackOutput": 1
+      },
+      "id": "6",
+      "name": "Switch Intent",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        -200,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://openrouter.ai/api/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$env.OPENROUTER_API_KEY}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {\n  model: $env.OPENROUTER_MODEL || 'openai/gpt-4o-mini',\n  temperature: 0.2,\n  messages: [\n    {\n      role: 'system',\n      content: 'You are a billing expert. Answer clearly about payments, invoices, refunds.'\n    },\n    {\n      role: 'user',\n      content: `User message: ${$json.message}\\n\\nRecent memory: ${JSON.stringify($json.memory?.history || [])}`\n    }\n  ]\n} }}"
+      },
+      "id": "7",
+      "name": "Billing Agent",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        60,
+        -180
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://openrouter.ai/api/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$env.OPENROUTER_API_KEY}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {\n  model: $env.OPENROUTER_MODEL || 'openai/gpt-4o-mini',\n  temperature: 0.3,\n  messages: [\n    {\n      role: 'system',\n      content: 'You are a helpful assistant. Answer general questions clearly.'\n    },\n    {\n      role: 'user',\n      content: `User message: ${$json.message}\\n\\nRecent memory: ${JSON.stringify($json.memory?.history || [])}`\n    }\n  ]\n} }}"
+      },
+      "id": "8",
+      "name": "General Agent",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        60,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://openrouter.ai/api/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$env.OPENROUTER_API_KEY}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {\n  model: $env.OPENROUTER_MODEL || 'openai/gpt-4o-mini',\n  temperature: 0.2,\n  messages: [\n    {\n      role: 'system',\n      content: 'You are a technical support expert. Help solve technical issues step by step.'\n    },\n    {\n      role: 'user',\n      content: `User message: ${$json.message}\\n\\nRecent memory: ${JSON.stringify($json.memory?.history || [])}`\n    }\n  ]\n} }}"
+      },
+      "id": "9",
+      "name": "Support Agent",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        60,
+        180
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://openrouter.ai/api/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$env.OPENROUTER_API_KEY}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {\n  model: $env.OPENROUTER_MODEL || 'openai/gpt-4o-mini',\n  temperature: 0.2,\n  messages: [\n    {\n      role: 'system',\n      content: 'You are a customer service agent. Be polite, helpful, and solution-oriented.'\n    },\n    {\n      role: 'user',\n      content: `User message: ${$json.message}\\n\\nRecent memory: ${JSON.stringify($json.memory?.history || [])}`\n    }\n  ]\n} }}"
+      },
+      "id": "10",
+      "name": "Service Agent",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        60,
+        360
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const base = $item(0).$node['Parse Router JSON'].json;\nconst answer = $json.choices?.[0]?.message?.content?.trim() || 'I could not generate an answer right now.';\n\nreturn [\n  {\n    json: {\n      ...base,\n      answer\n    }\n  }\n];"
+      },
+      "id": "11",
+      "name": "Build Final Answer",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        320,
+        60
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const store = this.getWorkflowStaticData('global');\nif (!store.memoryByUser) {\n  store.memoryByUser = {};\n}\n\nconst userId = $json.user_id || 'anonymous';\nconst prevHistory = Array.isArray($json.memory?.history) ? $json.memory.history : [];\nconst nextHistory = [\n  ...prevHistory,\n  {\n    user: $json.message,\n    assistant: $json.answer,\n    intent: $json.intent,\n    timestamp: new Date().toISOString()\n  }\n].slice(-5);\n\nconst savedMemory = {\n  last_message: $json.message,\n  last_intent: $json.intent,\n  history: nextHistory\n};\n\nstore.memoryByUser[userId] = savedMemory;\n\nreturn [\n  {\n    json: {\n      ...$json,\n      saved_memory: savedMemory\n    }\n  }\n];"
+      },
+      "id": "12",
+      "name": "Save Memory",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        560,
+        60
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ {\n  user_id: $json.user_id,\n  intent: $json.intent,\n  confidence: $json.confidence,\n  answer: $json.answer,\n  memory: $json.saved_memory\n} }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "13",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        780,
+        60
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Normalize Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Input": {
+      "main": [
+        [
+          {
+            "node": "Load Memory",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Memory": {
+      "main": [
+        [
+          {
+            "node": "Router Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Router Agent": {
+      "main": [
+        [
+          {
+            "node": "Parse Router JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Router JSON": {
+      "main": [
+        [
+          {
+            "node": "Switch Intent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch Intent": {
+      "main": [
+        [
+          {
+            "node": "Billing Agent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "General Agent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Support Agent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Service Agent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "General Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Billing Agent": {
+      "main": [
+        [
+          {
+            "node": "Build Final Answer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "General Agent": {
+      "main": [
+        [
+          {
+            "node": "Build Final Answer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Support Agent": {
+      "main": [
+        [
+          {
+            "node": "Build Final Answer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Service Agent": {
+      "main": [
+        [
+          {
+            "node": "Build Final Answer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Final Answer": {
+      "main": [
+        [
+          {
+            "node": "Save Memory",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Memory": {
+      "main": [
+        [
+          {
+            "node": "Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "versionId": "1"
+}
