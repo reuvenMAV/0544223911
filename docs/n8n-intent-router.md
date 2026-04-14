@@ -1,25 +1,25 @@
-# n8n Intent Router + Specialist Agents (AI Agent Nodes)
+# n8n Intent Router + Specialist Agents (Image-aligned)
 
-This workflow is aligned to the updated n8n AI stack and the node layout in your screenshot:
+This workflow now follows the node structure you provided:
 
-- `When chat message received` (Chat Trigger)
-- `Router Agent` + `OpenRouter Chat Model` + `Structured Output Parser` + `Simple Memory`
-- `Switch Intent`
-- 4 specialist branches:
-  - `Billing Agent`
-  - `General Agent`
-  - `Support Agent`
-  - `Service Agent`
-- each branch has:
-  - `OpenRouter Chat Model`
-  - `Simple Memory`
-  - `Chat` (Send Message)
+- `When chat message received`
+- `AI Agent` + `OpenRouter Chat Model` + `Structured Output Parser` + `Simple Memory`
+- `Switch Intent1`
+- specialist HTTP branches:
+  - `Billing Agent1`
+  - `General Agent1`
+  - `Support Agent1`
+  - `Service Agent1`
+- merge/output:
+  - `Build Final Answer1`
+  - `Save Memory1`
+  - `Respond1`
 
 ---
 
-## 1) Data Contract (Router output)
+## 1) Router Output Contract
 
-Router agent must return JSON that matches the Structured Output Parser schema:
+`AI Agent` must return JSON that matches Structured Output Parser schema:
 
 ```json
 {
@@ -28,7 +28,7 @@ Router agent must return JSON that matches the Structured Output Parser schema:
 }
 ```
 
-If confidence is below `0.6`, the Switch routes to `general`.
+If confidence is below `0.6`, `Switch Intent1` forces route to `general`.
 
 ---
 
@@ -46,26 +46,28 @@ If confidence is below `0.6`, the Switch routes to `general`.
 1. Open n8n.
 2. Import file:
    - `n8n/workflows/intent-router-openrouter.json`
-3. In **When chat message received**:
-   - keep response mode as `Using Response Nodes`
-4. In each OpenRouter Chat Model node:
-   - choose model (default in workflow: `openai/gpt-4o-mini`)
-5. Activate workflow and test from chat UI.
+3. Configure OpenRouter credential in `OpenRouter Chat Model`.
+4. Set env vars in n8n runtime:
+   - `OPENROUTER_API_KEY`
+   - optional: `OPENROUTER_MODEL`
+5. Activate workflow and test with chat trigger.
 
 ---
 
 ## 4) Node Order (as implemented)
 
-1. When chat message received
-2. Normalize Input (Set)
-3. Router Agent (AI Agent)
-4. OpenRouter Chat Model (Router)
-5. Structured Output Parser (intent/confidence schema)
-6. Simple Memory (Router)
-6. Switch Intent
-7. Billing Agent / General Agent / Support Agent / Service Agent (AI Agent nodes)
-8. OpenRouter model + Simple Memory per specialist branch
-9. Chat Send Message per specialist branch
+1. `When chat message received`
+2. `AI Agent` (intent classifier)
+3. `Switch Intent1`
+4. `Billing Agent1` / `General Agent1` / `Support Agent1` / `Service Agent1`
+5. `Build Final Answer1`
+6. `Save Memory1`
+7. `Respond1`
+
+Sub-node attachments:
+- `OpenRouter Chat Model` -> `AI Agent` (`ai_languageModel`)
+- `Structured Output Parser` -> `AI Agent` (`ai_outputParser`)
+- `Simple Memory` -> `AI Agent` (`ai_memory`)
 
 ---
 
@@ -73,21 +75,15 @@ If confidence is below `0.6`, the Switch routes to `general`.
 
 ### Telegram (recommended first)
 
-Two options:
-
-1. Keep current Chat Trigger flow for webchat testing.
-2. For Telegram production:
-   - replace `When chat message received` with `Telegram Trigger`
-   - keep `Normalize Input` mapping (`user_id`, `chatInput`)
-   - replace branch `Chat` nodes with `Telegram -> Send Message`.
+For Telegram production:
+- replace `When chat message received` with `Telegram Trigger`
+- map telegram text to `chatInput`
+- keep the rest of the flow unchanged
 
 ### WhatsApp (Meta or Twilio)
 
-Use WhatsApp webhook trigger as input, then map incoming payload to:
-- `user_id`
-- `chatInput`
-
-Reuse the same Router/Switch/Agent branches and send response via your provider send-message API.
+Use WhatsApp webhook as input and map incoming text to `chatInput`.
+Reuse same router + switch + specialist HTTP branches.
 
 ---
 
@@ -103,9 +99,6 @@ Reuse the same Router/Switch/Agent branches and send response via your provider 
 
 ## 7) Notes on Memory
 
-Current flow uses `Simple Memory` nodes with:
-- `sessionIdType: customKey`
-- `sessionKey: {{$('Normalize Input').item.json.user_id}}`
-- `contextWindowLength: 5`
-
-This mirrors your visual architecture (memory under each agent block). For high scale or queue-mode deployments, move to external memory storage.
+- Runtime memory for router is via `Simple Memory` node.
+- Persistent memory per user is stored in `Save Memory1` (workflow static data), keeping last 5 turns.
+- For production scale, move persisted memory to Redis/Postgres/Supabase.

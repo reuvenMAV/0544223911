@@ -1,650 +1,470 @@
 {
-  "name": "Intent Router - AI Agents + OpenRouter + Chat",
   "nodes": [
     {
-      "id": "node-chat-trigger",
-      "name": "When chat message received",
-      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
-      "typeVersion": 1.1,
-      "position": [
-        -1320,
-        140
-      ],
-      "webhookId": "intent-router-chat",
-      "parameters": {
-        "options": {
-          "responseMode": "responseNodes"
-        }
-      }
-    },
-    {
-      "id": "node-normalize",
-      "name": "Normalize Input",
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 3.4,
-      "position": [
-        -1080,
-        140
-      ],
-      "parameters": {
-        "mode": "manual",
-        "assignments": {
-          "assignments": [
-            {
-              "name": "user_id",
-              "type": "string",
-              "value": "={{ $json.sessionId || $json.user_id || 'anonymous' }}"
-            },
-            {
-              "name": "chatInput",
-              "type": "string",
-              "value": "={{ $json.chatInput || $json.message || '' }}"
-            }
-          ]
-        },
-        "options": {}
-      }
-    },
-    {
-      "id": "node-router-agent",
-      "name": "Router Agent",
-      "type": "@n8n/n8n-nodes-langchain.agent",
-      "typeVersion": 1.9,
-      "position": [
-        -840,
-        140
-      ],
-      "parameters": {
-        "promptType": "define",
-        "text": "={{ $json.chatInput }}",
-        "hasOutputParser": true,
-        "options": {
-          "systemMessage": "You are an intent classifier.\n\nClassify the user message into one of these intents:\n- billing\n- general\n- support\n- service\n\nReturn ONLY valid JSON in this format:\n{\n  \"intent\": \"billing|general|support|service\",\n  \"confidence\": 0-1\n}\n\nDo not return markdown. Do not add explanations."
-        }
-      }
-    },
-    {
-      "id": "node-router-model",
-      "name": "OpenRouter Chat Model (Router)",
-      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
-      "typeVersion": 1,
-      "position": [
-        -900,
-        360
-      ],
-      "parameters": {
-        "model": "openai/gpt-4o-mini",
-        "options": {
-          "temperature": 0
-        }
-      },
-      "credentials": {
-        "openRouterApi": {
-          "id": "credential-id",
-          "name": "openRouterApi Credential"
-        }
-      }
-    },
-    {
-      "id": "node-router-parser",
-      "name": "Structured Output Parser",
-      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
-      "typeVersion": 1.2,
-      "position": [
-        -720,
-        360
-      ],
-      "parameters": {
-        "schemaType": "manual",
-        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"intent\": {\n      \"type\": \"string\",\n      \"enum\": [\"billing\", \"general\", \"support\", \"service\"]\n    },\n    \"confidence\": {\n      \"type\": \"number\",\n      \"minimum\": 0,\n      \"maximum\": 1\n    }\n  },\n  \"required\": [\"intent\", \"confidence\"]\n}"
-      }
-    },
-    {
-      "id": "node-router-memory",
-      "name": "Simple Memory (Router)",
-      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
-      "typeVersion": 1.3,
-      "position": [
-        -760,
-        520
-      ],
-      "parameters": {
-        "sessionIdType": "customKey",
-        "sessionKey": "={{ $('Normalize Input').item.json.user_id }}",
-        "contextWindowLength": 5
-      }
-    },
-    {
-      "id": "node-switch-intent",
-      "name": "Switch Intent",
-      "type": "n8n-nodes-base.switch",
-      "typeVersion": 3.2,
-      "position": [
-        -560,
-        140
-      ],
       "parameters": {
         "rules": {
           "values": [
             {
-              "outputKey": "billing",
-              "renameOutput": true,
               "conditions": {
-                "combinator": "and",
                 "options": {
-                  "version": 2,
-                  "leftValue": "",
                   "caseSensitive": true,
-                  "typeValidation": "strict"
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
                 },
                 "conditions": [
                   {
-                    "id": "cond-billing",
-                    "leftValue": "={{ $json.output.intent === 'billing' && Number($json.output.confidence) >= 0.6 }}",
-                    "rightValue": "",
+                    "id": "73a7218f-157e-4f96-9616-d8803677b9ca",
+                    "leftValue": "={{ Number($json.output?.confidence || 0) < 0.6 ? 'general' : ($json.output?.intent || 'general') }}",
+                    "rightValue": "billing",
                     "operator": {
-                      "type": "boolean",
-                      "operation": "true",
-                      "singleValue": true
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
                     }
                   }
-                ]
+                ],
+                "combinator": "and"
               }
             },
             {
-              "outputKey": "general",
-              "renameOutput": true,
               "conditions": {
-                "combinator": "and",
                 "options": {
-                  "version": 2,
-                  "leftValue": "",
                   "caseSensitive": true,
-                  "typeValidation": "strict"
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
                 },
                 "conditions": [
                   {
-                    "id": "cond-general",
-                    "leftValue": "={{ ($json.output.intent === 'general' && Number($json.output.confidence) >= 0.6) || Number($json.output.confidence) < 0.6 }}",
-                    "rightValue": "",
+                    "id": "6d82e621-da70-4df6-a094-e522d68522f4",
+                    "leftValue": "={{ Number($json.output?.confidence || 0) < 0.6 ? 'general' : ($json.output?.intent || 'general') }}",
+                    "rightValue": "general",
                     "operator": {
-                      "type": "boolean",
-                      "operation": "true",
-                      "singleValue": true
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
                     }
                   }
-                ]
+                ],
+                "combinator": "and"
               }
             },
             {
-              "outputKey": "support",
-              "renameOutput": true,
               "conditions": {
-                "combinator": "and",
                 "options": {
-                  "version": 2,
-                  "leftValue": "",
                   "caseSensitive": true,
-                  "typeValidation": "strict"
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
                 },
                 "conditions": [
                   {
-                    "id": "cond-support",
-                    "leftValue": "={{ $json.output.intent === 'support' && Number($json.output.confidence) >= 0.6 }}",
-                    "rightValue": "",
+                    "id": "5c40ff49-9189-4229-9803-d007967045a8",
+                    "leftValue": "={{ Number($json.output?.confidence || 0) < 0.6 ? 'general' : ($json.output?.intent || 'general') }}",
+                    "rightValue": "support",
                     "operator": {
-                      "type": "boolean",
-                      "operation": "true",
-                      "singleValue": true
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
                     }
                   }
-                ]
+                ],
+                "combinator": "and"
               }
             },
             {
-              "outputKey": "service",
-              "renameOutput": true,
               "conditions": {
-                "combinator": "and",
                 "options": {
-                  "version": 2,
-                  "leftValue": "",
                   "caseSensitive": true,
-                  "typeValidation": "strict"
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
                 },
                 "conditions": [
                   {
-                    "id": "cond-service",
-                    "leftValue": "={{ $json.output.intent === 'service' && Number($json.output.confidence) >= 0.6 }}",
-                    "rightValue": "",
+                    "id": "cf3bf237-733b-4815-b5e8-4f77b00e9181",
+                    "leftValue": "={{ Number($json.output?.confidence || 0) < 0.6 ? 'general' : ($json.output?.intent || 'general') }}",
+                    "rightValue": "service",
                     "operator": {
-                      "type": "boolean",
-                      "operation": "true",
-                      "singleValue": true
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
                     }
                   }
-                ]
+                ],
+                "combinator": "and"
               }
             }
           ]
         },
-        "options": {
-          "fallbackOutput": "extra"
-        }
-      }
+        "options": {}
+      },
+      "id": "d6175468-2f6e-481b-ae5f-aaa87a2e3f98",
+      "name": "Switch Intent1",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        -1376,
+        -944
+      ]
     },
     {
-      "id": "node-billing-agent",
-      "name": "Billing Agent",
-      "type": "@n8n/n8n-nodes-langchain.agent",
-      "typeVersion": 1.9,
-      "position": [
-        -220,
-        -180
-      ],
       "parameters": {
-        "promptType": "define",
-        "text": "={{ $('Normalize Input').item.json.chatInput }}",
-        "options": {
-          "systemMessage": "You are a billing expert.\nAnswer clearly about payments, invoices, refunds."
-        }
-      }
+        "method": "POST",
+        "url": "https://openrouter.ai/api/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$env.OPENROUTER_API_KEY}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {\n  model: $env.OPENROUTER_MODEL || 'openai/gpt-4o-mini',\n  temperature: 0.2,\n  messages: [\n    {\n      role: 'system',\n      content: 'You are a billing expert. Answer clearly about payments, invoices, refunds.'\n    },\n    {\n      role: 'user',\n      content: `User message: ${$item(0).$node[\"When chat message received\"].json.chatInput || ''}`\n    }\n  ]\n} }}",
+        "options": {}
+      },
+      "id": "3ceda652-334a-4c9d-9e92-9fe2e982a9bb",
+      "name": "Billing Agent1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -1024,
+        -1216
+      ]
     },
     {
-      "id": "node-billing-model",
-      "name": "OpenRouter Chat Model (Billing)",
-      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
-      "typeVersion": 1,
-      "position": [
-        -280,
-        -20
-      ],
       "parameters": {
-        "model": "openai/gpt-4o-mini",
+        "method": "POST",
+        "url": "https://openrouter.ai/api/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$env.OPENROUTER_API_KEY}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {\n  model: $env.OPENROUTER_MODEL || 'openai/gpt-4o-mini',\n  temperature: 0.3,\n  messages: [\n    {\n      role: 'system',\n      content: 'You are a helpful assistant. Answer general questions clearly.'\n    },\n    {\n      role: 'user',\n      content: `User message: ${$item(0).$node[\"When chat message received\"].json.chatInput || ''}`\n    }\n  ]\n} }}",
+        "options": {}
+      },
+      "id": "b7ac95ac-fa2c-46d8-a958-735839a8b353",
+      "name": "General Agent1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -1024,
+        -1024
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://openrouter.ai/api/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$env.OPENROUTER_API_KEY}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {\n  model: $env.OPENROUTER_MODEL || 'openai/gpt-4o-mini',\n  temperature: 0.2,\n  messages: [\n    {\n      role: 'system',\n      content: 'You are a technical support expert. Help solve technical issues step by step.'\n    },\n    {\n      role: 'user',\n      content: `User message: ${$item(0).$node[\"When chat message received\"].json.chatInput || ''}`\n    }\n  ]\n} }}",
+        "options": {}
+      },
+      "id": "913ba349-f89d-4f98-8006-ee61f5c472bf",
+      "name": "Support Agent1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -1024,
+        -832
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://openrouter.ai/api/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$env.OPENROUTER_API_KEY}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {\n  model: $env.OPENROUTER_MODEL || 'openai/gpt-4o-mini',\n  temperature: 0.2,\n  messages: [\n    {\n      role: 'system',\n      content: 'You are a customer service agent. Be polite, helpful, and solution-oriented.'\n    },\n    {\n      role: 'user',\n      content: `User message: ${$item(0).$node[\"When chat message received\"].json.chatInput || ''}`\n    }\n  ]\n} }}",
+        "options": {}
+      },
+      "id": "8ef4a1f3-50c0-4907-8ebf-c348d2b63a6b",
+      "name": "Service Agent1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -1024,
+        -640
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const router = $item(0).$node['AI Agent'].json;\nconst incoming = $item(0).$node['When chat message received'].json;\nconst answer = $json.choices?.[0]?.message?.content?.trim() || 'I could not generate an answer right now.';\nconst confidence = Number(router.output?.confidence ?? 0);\nconst intent = confidence < 0.6 ? 'general' : (router.output?.intent || 'general');\n\nreturn [\n  {\n    json: {\n      user_id: incoming.sessionId || incoming.user_id || 'anonymous',\n      message: incoming.chatInput || incoming.message || '',\n      intent,\n      confidence,\n      answer\n    }\n  }\n];"
+      },
+      "id": "52cb3dd7-66d6-41d3-8f78-8a2c9ed37dcf",
+      "name": "Build Final Answer1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -800,
+        -928
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const store = this.getWorkflowStaticData('global');\nif (!store.memoryByUser) {\n  store.memoryByUser = {};\n}\n\nconst userId = $json.user_id || 'anonymous';\nconst existing = store.memoryByUser[userId] || {\n  last_message: '',\n  last_intent: 'general',\n  history: []\n};\n\nconst prevHistory = Array.isArray(existing.history) ? existing.history : [];\nconst nextHistory = [\n  ...prevHistory,\n  {\n    user: $json.message,\n    assistant: $json.answer,\n    intent: $json.intent,\n    timestamp: new Date().toISOString()\n  }\n].slice(-5);\n\nconst savedMemory = {\n  last_message: $json.message,\n  last_intent: $json.intent,\n  history: nextHistory\n};\n\nstore.memoryByUser[userId] = savedMemory;\n\nreturn [\n  {\n    json: {\n      ...$json,\n      saved_memory: savedMemory\n    }\n  }\n];"
+      },
+      "id": "f47fbafb-de7a-4f23-90b2-f931c0a353ac",
+      "name": "Save Memory1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -576,
+        -928
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ {\n  user_id: $json.user_id,\n  intent: $json.intent,\n  confidence: $json.confidence,\n  answer: $json.answer,\n  memory: $json.saved_memory\n} }}",
         "options": {
-          "temperature": 0.2
+          "responseCode": 200
         }
       },
-      "credentials": {
-        "openRouterApi": {
-          "id": "credential-id",
-          "name": "openRouterApi Credential"
-        }
-      }
+      "id": "fcc14d5e-6f27-4256-950e-6fda72cad92d",
+      "name": "Respond1",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        -352,
+        -928
+      ]
     },
     {
-      "id": "node-billing-memory",
-      "name": "Simple Memory (Billing)",
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.chatInput || $json.message || '' }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "You are an intent classifier.\n\nClassify the user message into one of these intents:\n- billing\n- general\n- support\n- service\n\nReturn ONLY valid JSON in this format:\n{\n  \"intent\": \"billing|general|support|service\",\n  \"confidence\": 0-1\n}\n\nDo not include markdown or extra explanation."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        -1656,
+        -928
+      ],
+      "id": "ab1667ec-271b-41bc-bb97-877ad95006e7",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"intent\": {\n      \"type\": \"string\",\n      \"enum\": [\"billing\", \"general\", \"support\", \"service\"]\n    },\n    \"confidence\": {\n      \"type\": \"number\",\n      \"minimum\": 0,\n      \"maximum\": 1\n    }\n  },\n  \"required\": [\"intent\", \"confidence\"]\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        -1456,
+        -704
+      ],
+      "id": "c6315be3-1ac1-4fac-a7d5-2aeafa9cd372",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $json.sessionId || $json.user_id || 'anonymous' }}",
+        "contextWindowLength": 5
+      },
       "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
       "typeVersion": 1.3,
       "position": [
-        -140,
-        -20
+        -1584,
+        -704
       ],
-      "parameters": {
-        "sessionIdType": "customKey",
-        "sessionKey": "={{ $('Normalize Input').item.json.user_id }}",
-        "contextWindowLength": 5
-      }
+      "id": "8f7014f0-e424-4ea7-bfc3-ba9e2976c1ca",
+      "name": "Simple Memory"
     },
     {
-      "id": "node-chat-billing",
-      "name": "Chat - Billing",
-      "type": "@n8n/n8n-nodes-langchain.chat",
-      "typeVersion": 1.3,
-      "position": [
-        40,
-        -180
-      ],
       "parameters": {
-        "operation": "send",
-        "message": "={{ $json.output }}",
-        "options": {}
-      }
-    },
-    {
-      "id": "node-general-agent",
-      "name": "General Agent",
-      "type": "@n8n/n8n-nodes-langchain.agent",
-      "typeVersion": 1.9,
-      "position": [
-        -220,
-        20
-      ],
-      "parameters": {
-        "promptType": "define",
-        "text": "={{ $('Normalize Input').item.json.chatInput }}",
+        "model": "={{ $env.OPENROUTER_MODEL || 'openai/gpt-4o-mini' }}",
         "options": {
-          "systemMessage": "You are a helpful assistant.\nAnswer general questions clearly."
+          "temperature": 0
         }
-      }
-    },
-    {
-      "id": "node-general-model",
-      "name": "OpenRouter Chat Model (General)",
+      },
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
       "typeVersion": 1,
       "position": [
-        -280,
-        180
+        -1712,
+        -704
       ],
-      "parameters": {
-        "model": "openai/gpt-4o-mini",
-        "options": {
-          "temperature": 0.3
-        }
-      },
+      "id": "44c7bda0-1e02-426b-95d3-c3a7cd702ab4",
+      "name": "OpenRouter Chat Model",
       "credentials": {
         "openRouterApi": {
           "id": "credential-id",
-          "name": "openRouterApi Credential"
+          "name": "OpenRouter account"
         }
       }
     },
     {
-      "id": "node-general-memory",
-      "name": "Simple Memory (General)",
-      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
-      "typeVersion": 1.3,
-      "position": [
-        -140,
-        180
-      ],
       "parameters": {
-        "sessionIdType": "customKey",
-        "sessionKey": "={{ $('Normalize Input').item.json.user_id }}",
-        "contextWindowLength": 5
-      }
-    },
-    {
-      "id": "node-chat-general",
-      "name": "Chat - General",
-      "type": "@n8n/n8n-nodes-langchain.chat",
-      "typeVersion": 1.3,
-      "position": [
-        40,
-        20
-      ],
-      "parameters": {
-        "operation": "send",
-        "message": "={{ $json.output }}",
         "options": {}
-      }
-    },
-    {
-      "id": "node-support-agent",
-      "name": "Support Agent",
-      "type": "@n8n/n8n-nodes-langchain.agent",
-      "typeVersion": 1.9,
-      "position": [
-        -220,
-        220
-      ],
-      "parameters": {
-        "promptType": "define",
-        "text": "={{ $('Normalize Input').item.json.chatInput }}",
-        "options": {
-          "systemMessage": "You are a technical support expert.\nHelp solve technical issues step by step."
-        }
-      }
-    },
-    {
-      "id": "node-support-model",
-      "name": "OpenRouter Chat Model (Support)",
-      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
-      "typeVersion": 1,
-      "position": [
-        -280,
-        380
-      ],
-      "parameters": {
-        "model": "openai/gpt-4o-mini",
-        "options": {
-          "temperature": 0.2
-        }
       },
-      "credentials": {
-        "openRouterApi": {
-          "id": "credential-id",
-          "name": "openRouterApi Credential"
-        }
-      }
-    },
-    {
-      "id": "node-support-memory",
-      "name": "Simple Memory (Support)",
-      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
-      "typeVersion": 1.3,
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.4,
       "position": [
-        -140,
-        380
+        -1936,
+        -928
       ],
-      "parameters": {
-        "sessionIdType": "customKey",
-        "sessionKey": "={{ $('Normalize Input').item.json.user_id }}",
-        "contextWindowLength": 5
-      }
-    },
-    {
-      "id": "node-chat-support",
-      "name": "Chat - Support",
-      "type": "@n8n/n8n-nodes-langchain.chat",
-      "typeVersion": 1.3,
-      "position": [
-        40,
-        220
-      ],
-      "parameters": {
-        "operation": "send",
-        "message": "={{ $json.output }}",
-        "options": {}
-      }
-    },
-    {
-      "id": "node-service-agent",
-      "name": "Service Agent",
-      "type": "@n8n/n8n-nodes-langchain.agent",
-      "typeVersion": 1.9,
-      "position": [
-        -220,
-        420
-      ],
-      "parameters": {
-        "promptType": "define",
-        "text": "={{ $('Normalize Input').item.json.chatInput }}",
-        "options": {
-          "systemMessage": "You are a customer service agent.\nBe polite, helpful, and solution-oriented."
-        }
-      }
-    },
-    {
-      "id": "node-service-model",
-      "name": "OpenRouter Chat Model (Service)",
-      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
-      "typeVersion": 1,
-      "position": [
-        -280,
-        580
-      ],
-      "parameters": {
-        "model": "openai/gpt-4o-mini",
-        "options": {
-          "temperature": 0.2
-        }
-      },
-      "credentials": {
-        "openRouterApi": {
-          "id": "credential-id",
-          "name": "openRouterApi Credential"
-        }
-      }
-    },
-    {
-      "id": "node-service-memory",
-      "name": "Simple Memory (Service)",
-      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
-      "typeVersion": 1.3,
-      "position": [
-        -140,
-        580
-      ],
-      "parameters": {
-        "sessionIdType": "customKey",
-        "sessionKey": "={{ $('Normalize Input').item.json.user_id }}",
-        "contextWindowLength": 5
-      }
-    },
-    {
-      "id": "node-chat-service",
-      "name": "Chat - Service",
-      "type": "@n8n/n8n-nodes-langchain.chat",
-      "typeVersion": 1.3,
-      "position": [
-        40,
-        420
-      ],
-      "parameters": {
-        "operation": "send",
-        "message": "={{ $json.output }}",
-        "options": {}
-      }
-    },
-    {
-      "id": "node-chat-fallback",
-      "name": "Chat - Fallback",
-      "type": "@n8n/n8n-nodes-langchain.chat",
-      "typeVersion": 1.3,
-      "position": [
-        -220,
-        -340
-      ],
-      "parameters": {
-        "operation": "send",
-        "message": "I could not classify your request with enough confidence, so I routed you to general support.",
-        "options": {}
-      }
-    },
-    {
-      "id": "note-router",
-      "name": "Router",
-      "type": "n8n-nodes-base.stickyNote",
-      "typeVersion": 1,
-      "position": [
-        -980,
-        -60
-      ],
-      "parameters": {
-        "color": 7,
-        "width": 540,
-        "height": 360,
-        "content": "## Router\n\nAI Agent + OpenRouter Chat Model + Structured Output Parser\n\nOutput schema:\n- intent\n- confidence\n\nSwitch fallback:\n- confidence < 0.6 -> General"
-      }
-    },
-    {
-      "id": "note-billing",
-      "name": "Billing Area",
-      "type": "n8n-nodes-base.stickyNote",
-      "typeVersion": 1,
-      "position": [
-        -360,
-        -260
-      ],
-      "parameters": {
-        "color": 5,
-        "width": 460,
-        "height": 280,
-        "content": "### הנהלת חשבונות\nBilling Agent + OpenRouter + Simple Memory + Chat"
-      }
-    },
-    {
-      "id": "note-general",
-      "name": "General Area",
-      "type": "n8n-nodes-base.stickyNote",
-      "typeVersion": 1,
-      "position": [
-        -360,
-        -60
-      ],
-      "parameters": {
-        "color": 6,
-        "width": 460,
-        "height": 280,
-        "content": "### מידע כללי\nGeneral Agent + OpenRouter + Simple Memory + Chat"
-      }
-    },
-    {
-      "id": "note-support",
-      "name": "Support Area",
-      "type": "n8n-nodes-base.stickyNote",
-      "typeVersion": 1,
-      "position": [
-        -360,
-        140
-      ],
-      "parameters": {
-        "color": 4,
-        "width": 460,
-        "height": 280,
-        "content": "### תמיכה\nSupport Agent + OpenRouter + Simple Memory + Chat"
-      }
-    },
-    {
-      "id": "note-service",
-      "name": "Service Area",
-      "type": "n8n-nodes-base.stickyNote",
-      "typeVersion": 1,
-      "position": [
-        -360,
-        340
-      ],
-      "parameters": {
-        "color": 3,
-        "width": 460,
-        "height": 280,
-        "content": "### שירות לקוחות\nService Agent + OpenRouter + Simple Memory + Chat"
-      }
+      "id": "eab6eaba-3658-4044-b67b-f8c58ae1693e",
+      "name": "When chat message received",
+      "webhookId": "8af56a48-e366-4ef0-805f-42c2f424a845"
     }
   ],
   "connections": {
-    "When chat message received": {
+    "Switch Intent1": {
       "main": [
         [
           {
-            "node": "Normalize Input",
+            "node": "Billing Agent1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "General Agent1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Support Agent1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Service Agent1",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Normalize Input": {
+    "Billing Agent1": {
       "main": [
         [
           {
-            "node": "Router Agent",
+            "node": "Build Final Answer1",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "OpenRouter Chat Model (Router)": {
-      "ai_languageModel": [
+    "General Agent1": {
+      "main": [
         [
           {
-            "node": "Router Agent",
-            "type": "ai_languageModel",
+            "node": "Build Final Answer1",
+            "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Simple Memory (Router)": {
-      "ai_memory": [
+    "Support Agent1": {
+      "main": [
         [
           {
-            "node": "Router Agent",
-            "type": "ai_memory",
+            "node": "Build Final Answer1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Service Agent1": {
+      "main": [
+        [
+          {
+            "node": "Build Final Answer1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Final Answer1": {
+      "main": [
+        [
+          {
+            "node": "Save Memory1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Memory1": {
+      "main": [
+        [
+          {
+            "node": "Respond1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Switch Intent1",
+            "type": "main",
             "index": 0
           }
         ]
@@ -654,189 +474,40 @@
       "ai_outputParser": [
         [
           {
-            "node": "Router Agent",
+            "node": "AI Agent",
             "type": "ai_outputParser",
             "index": 0
           }
         ]
       ]
     },
-    "Router Agent": {
-      "main": [
-        [
-          {
-            "node": "Switch Intent",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Switch Intent": {
-      "main": [
-        [
-          {
-            "node": "Billing Agent",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "General Agent",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Support Agent",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Service Agent",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Chat - Fallback",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "OpenRouter Chat Model (Billing)": {
-      "ai_languageModel": [
-        [
-          {
-            "node": "Billing Agent",
-            "type": "ai_languageModel",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Simple Memory (Billing)": {
+    "Simple Memory": {
       "ai_memory": [
         [
           {
-            "node": "Billing Agent",
+            "node": "AI Agent",
             "type": "ai_memory",
             "index": 0
           }
         ]
       ]
     },
-    "Billing Agent": {
-      "main": [
-        [
-          {
-            "node": "Chat - Billing",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "OpenRouter Chat Model (General)": {
+    "OpenRouter Chat Model": {
       "ai_languageModel": [
         [
           {
-            "node": "General Agent",
+            "node": "AI Agent",
             "type": "ai_languageModel",
             "index": 0
           }
         ]
       ]
     },
-    "Simple Memory (General)": {
-      "ai_memory": [
-        [
-          {
-            "node": "General Agent",
-            "type": "ai_memory",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "General Agent": {
+    "When chat message received": {
       "main": [
         [
           {
-            "node": "Chat - General",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "OpenRouter Chat Model (Support)": {
-      "ai_languageModel": [
-        [
-          {
-            "node": "Support Agent",
-            "type": "ai_languageModel",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Simple Memory (Support)": {
-      "ai_memory": [
-        [
-          {
-            "node": "Support Agent",
-            "type": "ai_memory",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Support Agent": {
-      "main": [
-        [
-          {
-            "node": "Chat - Support",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "OpenRouter Chat Model (Service)": {
-      "ai_languageModel": [
-        [
-          {
-            "node": "Service Agent",
-            "type": "ai_languageModel",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Simple Memory (Service)": {
-      "ai_memory": [
-        [
-          {
-            "node": "Service Agent",
-            "type": "ai_memory",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Service Agent": {
-      "main": [
-        [
-          {
-            "node": "Chat - Service",
+            "node": "AI Agent",
             "type": "main",
             "index": 0
           }
@@ -844,10 +515,9 @@
       ]
     }
   },
-  "settings": {
-    "executionOrder": "v1"
-  },
   "pinData": {},
-  "active": false,
-  "versionId": "2"
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "71f33772c542325c132515b6972d67aefe548973786e1982c634f2d97a910933"
+  }
 }
