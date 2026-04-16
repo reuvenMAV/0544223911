@@ -11,6 +11,7 @@ This repository now includes a full Hebrew setup guide for deploying OpenClaw + 
 ## Guide file
 
 - [`OPENCLAW_N8N_3_SERVER_INSTALL_HE.md`](./OPENCLAW_N8N_3_SERVER_INSTALL_HE.md)
+- Includes practical lessons learned + live checklist status section for faster replication to additional machines.
 
 ## Scope
 

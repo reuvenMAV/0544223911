@@ -3,7 +3,7 @@
 מדריך התקנה מלא ל-3 שרתים  
 Google Workspace | Browser | Database | HA
 
-**גרסה:** v2.1 — אפריל 2026  
+**גרסה:** v2.2 — אפריל 2026  
 **מבוסס על:** docs.openclaw.ai + GitHub
 
 ---
@@ -775,7 +775,91 @@ tailscale status | sed -n '1,5p'
 
 ---
 
-## 11) Roadmap — שלבי הטמעה
+## 11) לקחים מעשיים מההקמה בפועל (M1)
+
+הסעיף הזה נוסף מתוך הקמה אמיתית, כדי לקצר זמן בשכפול ל-M2/M3.
+
+### 11.1 טעויות נפוצות ומה לעשות במקום
+
+| טעות נפוצה | למה זה קורה | דרך נכונה |
+|---|---|---|
+| פקודות נשברות באמצע (paste מלוכלך) | מדביקים כמה פקודות בבת אחת עם תווי prompt | להריץ שורה-שורה, או בלוק אחד מלא עם `cat <<'BASH' ... BASH` |
+| `docker: command not found` אחרי התקנה | `apt update` נכשל בגלל mirror sync | להריץ: `apt clean`, למחוק `/var/lib/apt/lists/*`, ואז `apt update` מחדש |
+| `openclaw gateway status` מראה RPC failed מיד אחרי restart | warm-up זמני של gateway | להמתין 15–30 שניות ולבדוק שוב לפני troubleshooting |
+| `Config validation failed: Unrecognized key: "n8n"` | בגרסת OpenClaw הזו אין מפתח קונפיג `n8n.webhookBase` | להשתמש ב-env (`N8N_WEBHOOK_BASE`) ובניתוב דרך Router/SOUL |
+| n8n API מחזיר 401 | משתמשים ב-JWT/session token במקום Personal API Key | ליצור Personal API Key ב-n8n (`Settings -> n8n API`) |
+| `request/body/active is read-only` ב-`POST /workflows` | API לא מאפשר `active` בשלב create | ליצור workflow כ-inactive ואז `POST /workflows/:id/activate` |
+| webhook מחזיר 404 | workflow לא פעיל או path לא תואם | להפעיל workflow (Activate) ולוודא path מדויק |
+
+### 11.2 כללי עבודה שמונעים תקלות
+
+- לא להדביק prompt (`reuven@...$`) יחד עם הפקודה.
+- לא לשלוח סודות בצ'אט.  
+  אם סוד דלף: לבצע Rotation מיידי (API keys, bot tokens, n8n API keys).
+- אחרי כל restart:
+  1. `openclaw gateway status`
+  2. `curl -sf http://127.0.0.1:18789/health`
+  3. `curl -sf http://127.0.0.1:5678/healthz`
+- כשמשתמשים ב-`read -s`: קלט מוסתר זה תקין (לא תקלה).
+
+### 11.3 הבהרות גרסאות חשובות
+
+- OpenClaw לפי docs: Node 22.14+ נתמך, Node 24 מומלץ.
+- ב-WSL2 ניתן לעבוד, אבל לפרודקשן עדיף שרתי Linux ייעודיים.
+- n8n API זמין ונבדק בהצלחה עם `X-N8N-API-KEY`.
+
+---
+
+## 12) צ'קליסט סטטוס בפועל — מה הושלם ומה נשאר (M1)
+
+### 12.1 הושלם בפועל ✅
+
+- [x] OpenClaw מעודכן (`openclaw --version` תואם latest בזמן ההקמה)
+- [x] Gateway על `loopback:18789` עם `auth.mode=token`
+- [x] `openclaw` health endpoint תקין (`/health`)
+- [x] Telegram channel מחובר ועובד
+- [x] Docker מותקן ופועל
+- [x] n8n רץ על `127.0.0.1:5678` ו-`/healthz` תקין
+- [x] נבדק חיבור n8n API (`HTTP=200` עם Personal API Key)
+- [x] נוצרו והופעלו webhooks:
+  - `openclaw-google`
+  - `openclaw-db-read`
+  - `openclaw-db-write`
+  - `openclaw-browser-stealth`
+- [x] smoke tests עברו לכל 4 ה-webhooks
+- [x] `providers.env` קיים עם הרשאות `600`
+
+### 12.2 נשאר להשלים לפני פרודקשן מלא ⏳
+
+- [ ] להקשיח plugins:
+  - להסיר/לאפשר מפורשות plugins לא מזוהים (`plugins.allow`)
+  - לטפל ב-warning של `openclaw-tavily` (או להוסיף API key, או לבטל)
+- [ ] להשלים Router agent production policy:
+  - SOUL.md סופי עם map intents -> webhooks
+  - הגדרת approval קשיחה ל-`db-write`
+- [ ] להחליף workflows של smoke ב-workflows אמיתיים:
+  - Google OAuth2 nodes
+  - DB read-only credential אמיתי
+  - DB write + approval gate + audit log
+  - Browser webhook ל-endpoint אמיתי ב-M2
+- [ ] לאמת UFW/Tailscale לפי ארכיטקטורה (כולל `tailscale serve`)
+- [ ] להגדיר Redis + queue mode ב-n8n (לפי התכנון של M1/M2 workers)
+- [ ] לבצע Rotation לכל סוד שנחשף במהלך בדיקות
+- [ ] לשקול מעבר למשתמש מערכת ייעודי (`openclaw`) במקום משתמש אינטראקטיבי
+- [ ] לנעול סיסמת n8n admin מחדש אם הודלפה במהלך setup
+
+### 12.3 פקודת אימות מהירה לפני מעבר ל-M2
+
+```bash
+openclaw gateway status
+openclaw channels status --probe
+curl -sf http://127.0.0.1:18789/health && echo "openclaw OK"
+curl -sf http://127.0.0.1:5678/healthz && echo "n8n OK"
+```
+
+---
+
+## 13) Roadmap — שלבי הטמעה
 
 | שלב | מה מטמיעים | ערך |
 |---|---|---|
