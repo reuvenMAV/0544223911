@@ -1,0 +1,7 @@
+{
+  "mcpServers": {
+    "metricool": {
+      "url": "https://ai.metricool.com/mcp"
+    }
+  }
+}
