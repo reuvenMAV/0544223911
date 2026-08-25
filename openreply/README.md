@@ -10,7 +10,7 @@ Open-sourced ManyChat for Instagram comment-to-DM automation.
 
 </div>
 
-Hebrew setup for this fork: [docs/setup-he.md](docs/setup-he.md). Vercel/Railway **Root Directory** must be `openreply`.
+Hebrew setup for this fork: [docs/setup-he.md](docs/setup-he.md). Production domain: `https://openreply.mavash.net` ([docs/domain-mavash.md](docs/domain-mavash.md)). Vercel/Railway **Root Directory** must be `openreply`.
 
 Someone comments `LINK` on your reel, and they get a DM with your link a second later. That is the whole idea. OpenReply watches the comments on your Instagram posts, and when a comment matches a keyword you set, it sends that person a private reply through the official Meta API. You can also post a public reply under the comment at the same time.
 

@@ -4,6 +4,8 @@
 
 **יעד:** תגובה עם מילת מפתח באינסטגרם → DM אוטומטי עם לינק. בחינם, על התשתית שלך.
 
+**כתובת ייצור:** `https://openreply.mavash.net` — ראה [domain-mavash.md](domain-mavash.md).
+
 ## ארכיטקטורה
 
 | רכיב | טכנולוגיה | איפה רץ |
@@ -47,7 +49,7 @@ chmod +x scripts/generate-secrets.sh
 
 - `RESEND_API_KEY`, `EMAIL_FROM`
 - `INSTAGRAM_APP_ID`, `INSTAGRAM_APP_SECRET`, `FACEBOOK_APP_SECRET`
-- `NEXTAUTH_URL` (אחרי שיש דומיין Vercel)
+- `NEXTAUTH_URL=https://openreply.mavash.net`
 - `DATABASE_URL`, `REDIS_URL` (אחרי Railway)
 
 ---
@@ -57,11 +59,11 @@ chmod +x scripts/generate-secrets.sh
 בלי זה אף אחד לא יכול להתחבר לדשבורד.
 
 1. הירשם ב-[resend.com](https://resend.com)
-2. אמת דומיין שולח (או השתמש בכתובת בדיקה של Resend לפיתוח בלבד)
+2. אמת את הדומיין `mavash.net` (הוסף רק TXT/CNAME ש-Resend נותן; **אל תיגע ב-MX של Google**)
 3. צור API key
 4. שמור:
    - `RESEND_API_KEY=re_...`
-   - `EMAIL_FROM=OpenReply <login@הדומיין-המאומת-שלך>`
+   - `EMAIL_FROM=OpenReply <noreply@mavash.net>`
 
 אם יש לך SMTP משלך, אפשר `EMAIL_SERVER` במקום Resend — ראה `.env.example`.
 
@@ -107,13 +109,16 @@ DATABASE_URL="postgresql://...proxy.rlwy.net.../railway" npm run db:migrate
 1. New Project ← הריפו הזה
 2. **Root Directory:** `openreply`
 3. Environment Variables — כל הטבלה, עם:
-   - `NEXTAUTH_URL=https://YOUR-APP.vercel.app`
+   - `NEXTAUTH_URL=https://openreply.mavash.net`
    - `DATABASE_URL` / `REDIS_URL` = ה-URL הציבורי מ-Railway
    - אותו `ENCRYPTION_KEY` כמו ב-worker
 4. Deploy
-5. עדכן ב-Railway את `NEXTAUTH_URL` לאותו דומיין
+5. Vercel → Domains → Add `openreply.mavash.net` → CNAME ב-DNS (פירוט ב-[domain-mavash.md](domain-mavash.md))
+6. עדכן ב-Railway את `NEXTAUTH_URL` לאותו דומיין
 
-הדומיין הזה נכנס גם ל-OAuth וגם ל-webhook של Meta. עד שאין דומיין, דלג על App Domains ב-Meta (נמלא later).
+**לא** שמים את OpenReply על `mavash.net` עצמו — זה אתר העסק החי. הסאב-דומיין `openreply.mavash.net` פנוי. `app.mavash.net` כבר תפוס על אותו שרת.
+
+הדומיין הזה נכנס גם ל-OAuth וגם ל-webhook של Meta. עד שה-CNAME חי, אפשר להתחיל את האפליקציה ב-Meta בלי App Domains, ואז למלא.
 
 ---
 
@@ -151,13 +156,13 @@ DATABASE_URL="postgresql://...proxy.rlwy.net.../railway" npm run db:migrate
 2. Instagram → **Set Up**
 3. בחר **Instagram Graph API** / **API setup with Instagram login**
 
-### 4.5 הגדרות Basic (אחרי שיש דומיין Vercel)
+### 4.5 הגדרות Basic
 
 1. Settings → **Basic**
-2. App Domains: `YOUR-APP.vercel.app` (בלי `https://`)
-3. Privacy Policy URL: `https://YOUR-APP.vercel.app/privacy` (לפני Publish; בינתיים אפשר לדלג)
-4. Terms of Service URL: `https://YOUR-APP.vercel.app/terms`
-5. Data deletion: `https://YOUR-APP.vercel.app/data-deletion`
+2. App Domains: `openreply.mavash.net` (בלי `https://`)
+3. Privacy Policy URL: `https://openreply.mavash.net/privacy` (לפני Publish; בינתיים אפשר לדלג)
+4. Terms of Service URL: `https://openreply.mavash.net/terms`
+5. Data deletion: `https://openreply.mavash.net/data-deletion`
 6. App Icon: אפשר לדלג
 7. **Save Changes**
 
@@ -203,7 +208,7 @@ Instagram → Set up Instagram business login → Business login settings.
 OAuth redirect URIs — בדיוק, בלי slash בסוף:
 
 ```
-https://YOUR-APP.vercel.app/api/instagram/callback
+https://openreply.mavash.net/api/instagram/callback
 ```
 
 אין צורך ב-Embed URL של Meta. החיבור נעשה מדשבורד OpenReply: Settings → Connect Instagram.
@@ -213,7 +218,7 @@ https://YOUR-APP.vercel.app/api/instagram/callback
 Callback URL:
 
 ```
-https://YOUR-APP.vercel.app/api/webhook
+https://openreply.mavash.net/api/webhook
 ```
 
 Verify token: הערך של `WEBHOOK_VERIFY_TOKEN`.
@@ -238,14 +243,14 @@ Publish → מלא Privacy / Terms / Data deletion בכתובות מ-4.5 → Pub
 
 | משתנה | מה זה |
 | --- | --- |
-| `NEXTAUTH_URL` | `https://YOUR-APP.vercel.app` |
+| `NEXTAUTH_URL` | `https://openreply.mavash.net` |
 | `NEXTAUTH_SECRET` | `openssl rand -base64 32` |
 | `CRON_SECRET` | מגן על cron של רענון טוקנים |
 | `ENCRYPTION_KEY` | 64 תווי hex. זהה ב-web וב-worker |
 | `DATABASE_URL` | Postgres (ציבורי ב-Vercel, פנימי ב-worker) |
 | `REDIS_URL` | Redis TCP (לא HTTP-only) |
 | `RESEND_API_KEY` | מפתח Resend |
-| `EMAIL_FROM` | שולח מאומת |
+| `EMAIL_FROM` | `OpenReply <noreply@mavash.net>` אחרי אימות Resend |
 | `META_GRAPH_API_VERSION` | למשל `v25.0` |
 | `INSTAGRAM_APP_ID` | ממוצר Instagram Login |
 | `INSTAGRAM_APP_SECRET` | ממוצר Instagram Login |
@@ -289,9 +294,9 @@ npm run worker         # טרמינל 2
 
 אחרי שתסיים שלב, הדבק **רק** את מה שחסר (בלי secrets מיותרים אם אפשר):
 
-1. דומיין Vercel (`https://….vercel.app`)
+1. אישור שה-CNAME של `openreply.mavash.net` מחובר ל-Vercel
 2. אישור ש-Railway worker רץ
-3. `INSTAGRAM_APP_ID` (המספר הציבורי בסדר) — את ה-secrets שמור ב-Vercel/Railway, לא בצ'אט אם אפשר להימנע
+3. `INSTAGRAM_APP_ID` (המספר הציבורי בסדר) — את ה-secrets שמור ב-Vercel/Railway
 4. צילום מסך אם מסך Meta לא תואם למדריך
 
 סובב כל secret שהודבק בצ'אט לפני שימוש אמיתי.
