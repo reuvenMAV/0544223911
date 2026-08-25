@@ -5,7 +5,29 @@ OpenReply רץ על סאב-דומיין פנוי:
 
 **`https://openreply.mavash.net`**
 
-`openreply.mavash.net` עדיין בלי רשומת DNS. `app.mavash.net` כבר מצביע לשרת הקיים — לא משתמשים בו.
+`app.mavash.net` כבר מצביע לשרת הקיים — לא משתמשים בו.
+
+## מצב DNS עכשיו (25 באוגוסט 2026)
+
+הרשומה קיימת, אבל היא **A → `129.159.138.4`** (אותו שרת nginx של `mavash.net`), לא CNAME ל-Vercel.
+
+מה שקורה בפועל:
+
+- תעודת SSL שמוחזרת היא של `ai.mavash.net` — הדפדפן מציג שגיאת תעודה
+- nginx מפנה כברירת מחדל לאתר אחר (Vercel מאחורי הפרוקסי), **לא** OpenReply
+- Meta לא תוכל לאמת webhook על הכתובת הזו עד שיש SSL תקין על `openreply.mavash.net`
+
+### תיקון
+
+1. ב-Vercel: הפרויקט של OpenReply, Root Directory `openreply`, אחרי דיפלוי: **Settings → Domains → Add** `openreply.mavash.net`
+2. ב-Google Domains: **מחק** את רשומת ה-A של `openreply`
+3. הוסף במקומה:
+
+| Type | Name / Host | Value |
+| --- | --- | --- |
+| CNAME | `openreply` | הערך ש-Vercel מציג (בדרך כלל `cname.vercel-dns.com`) |
+
+לא להשאיר A ו-CNAME על אותו שם. אחרי שה-CNAME חי, `https://openreply.mavash.net/api/health` אמור להיפתח בלי אזהרת SSL.
 
 ## מה להדביק ב-Vercel / Railway / Meta
 
@@ -25,7 +47,7 @@ OpenReply רץ על סאב-דומיין פנוי:
 
 ## DNS (Google Domains — ns-cloud-a*.googledomains.com)
 
-אחרי שיוצרים את פרויקט Vercel ומוסיפים דומיין `openreply.mavash.net`, Vercel מציג CNAME. בדרך כלל:
+אין להשתמש ב-A לאותו IP של `mavash.net`. רק CNAME ל-Vercel:
 
 | Type | Name / Host | Value |
 | --- | --- | --- |
