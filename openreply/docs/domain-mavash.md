@@ -3,7 +3,7 @@
 האתר הראשי [mavash.net](https://mavash.net) נשאר כמו שהוא.
 OpenReply רץ **על אותו שרת nginx**, לא על Vercel:
 
-**`https://openreply.mavash.net`** → `127.0.0.1:3011` (Docker)
+**`https://openreply.mavash.net`** → `127.0.0.1:3022` (Docker; 3011 already taken on this host)
 
 DNS כבר נכון: A → `129.159.138.4`. אין לשנות ל-CNAME של Vercel.
 

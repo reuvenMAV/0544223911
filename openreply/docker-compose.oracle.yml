@@ -47,7 +47,7 @@ services:
       REDIS_URL: redis://redis:6379
       NEXTAUTH_URL: https://openreply.mavash.net
     ports:
-      - "127.0.0.1:3011:3000"
+      - "127.0.0.1:3022:3000"
     depends_on:
       postgres:
         condition: service_healthy

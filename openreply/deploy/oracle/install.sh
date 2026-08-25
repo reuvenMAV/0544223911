@@ -78,6 +78,6 @@ if [[ ! -d /etc/letsencrypt/live/${DOMAIN} ]]; then
 fi
 
 echo "Health (local):"
-curl -sS -m 10 http://127.0.0.1:3011/api/health || true
+curl -sS -m 10 http://127.0.0.1:3022/api/health || true
 echo
 echo "Done. Public: https://${DOMAIN}/api/health"
