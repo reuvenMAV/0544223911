@@ -4,16 +4,16 @@
 
 **יעד:** תגובה עם מילת מפתח באינסטגרם → DM אוטומטי עם לינק. בחינם, על התשתית שלך.
 
-**כתובת ייצור:** `https://openreply.mavash.net` — ראה [domain-mavash.md](domain-mavash.md).
+**כתובת ייצור:** `https://openreply.mavash.net` על שרת Oracle `129.159.138.4` — ראה [domain-mavash.md](domain-mavash.md). לא Vercel.
 
 ## ארכיטקטורה
 
 | רכיב | טכנולוגיה | איפה רץ |
 | --- | --- | --- |
-| Web app + API + webhook | Next.js | Vercel |
-| Worker (שולח את ה-DM) | Node.js + BullMQ | Railway (תהליך תמיד-דלוק) |
-| DB | PostgreSQL | Railway |
-| תור / rate limit | Redis | Railway |
+| Web app + API + webhook | Next.js | Docker על Oracle, מאחורי nginx |
+| Worker (שולח את ה-DM) | Node.js + BullMQ | Docker על אותו שרת |
+| DB | PostgreSQL | Docker על אותו שרת |
+| תור / rate limit | Redis | Docker על אותו שרת |
 | Instagram | Meta Graph API (Instagram Login) | Meta Developer App |
 
 ה-web וה-worker **חייבים** את אותו `DATABASE_URL` (עם host מתאים), אותו `REDIS_URL`, ואותו `ENCRYPTION_KEY`. מפתח שונה = כל שליחה נכשלת בפענוח הטוקן.
