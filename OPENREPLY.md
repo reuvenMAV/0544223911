@@ -15,15 +15,14 @@ OpenReply הוא ManyChat חינמי לתגובות באינסטגרם: מישה
 
 אין לי גישה לחשבון Facebook / Instagram / Vercel / Railway / Resend שלך. בלי זה אי אפשר לקבל App ID ו-App Secret, לפרוס את האתר, או לחבר את האינסטגרם.
 
-דומיין ציבורי: **`https://openreply.mavash.net`** (האתר הראשי `mavash.net` לא משתנה). פירוט DNS: [`openreply/docs/domain-mavash.md`](openreply/docs/domain-mavash.md).
+דומיין ציבורי: **`https://openreply.mavash.net`** על שרת Oracle `129.159.138.4` (לא Vercel). פירוט: [`openreply/docs/domain-mavash.md`](openreply/docs/domain-mavash.md).
 
 סדר העבודה המומלץ:
 
-1. **Resend** — אימות `mavash.net` לשליחה (בלי לגעת ב-MX של Google)
-2. **Railway** — Postgres + Redis + worker
-3. **Vercel** — האפליקציה (Root Directory: `openreply`) + CNAME ל-`openreply.mavash.net`
-4. **Meta Developer App** — Instagram Login + webhook (החלק הארוך)
-5. חיבור אינסטגרם בדשבורד ובדיקת תגובה מחשבון שני
+1. גישת SSH לשרת (הוספת מפתח הסוכן) או הרצת `deploy/oracle/install.sh` על השרת
+2. **Resend** — אימות `mavash.net` לשליחה (בלי לגעת ב-MX של Google)
+3. **Meta Developer App** — Instagram Login + webhook
+4. חיבור אינסטגרם בדשבורד ובדיקת תגובה מחשבון שני
 
 אימייל ליצירת האפליקציה ב-Meta: `bitreuven@gmail.com`
 

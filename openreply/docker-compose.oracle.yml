@@ -1,0 +1,93 @@
+# OpenReply on the Oracle host (instance-r223911m / 129.159.138.4).
+# Binds only to localhost; nginx terminates TLS for openreply.mavash.net.
+#
+#   cd openreply
+#   docker compose -f docker-compose.oracle.yml --env-file .env up -d --build
+
+name: openreply
+
+services:
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: openreply
+      POSTGRES_USER: openreply
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - openreply-pgdata:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:5434:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U openreply -d openreply"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--save", "60", "1"]
+    volumes:
+      - openreply-redis:/data
+    ports:
+      - "127.0.0.1:6380:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  web:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://openreply:${POSTGRES_PASSWORD}@postgres:5432/openreply
+      REDIS_URL: redis://redis:6379
+      NEXTAUTH_URL: https://openreply.mavash.net
+    ports:
+      - "127.0.0.1:3011:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O- http://127.0.0.1:3000/api/health >/dev/null || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 20
+      start_period: 40s
+
+  worker:
+    build: .
+    restart: unless-stopped
+    command: ["npm", "run", "worker"]
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://openreply:${POSTGRES_PASSWORD}@postgres:5432/openreply
+      REDIS_URL: redis://redis:6379
+      NEXTAUTH_URL: https://openreply.mavash.net
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      web:
+        condition: service_healthy
+
+  cron:
+    build: .
+    restart: unless-stopped
+    command: ["sh", "scripts/cron.sh"]
+    env_file: .env
+    environment:
+      CRON_BASE_URL: http://web:3000
+    depends_on:
+      web:
+        condition: service_healthy
+
+volumes:
+  openreply-pgdata:
+  openreply-redis:

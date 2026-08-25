@@ -1,73 +1,44 @@
-# דומיין OpenReply — mavash.net
+# OpenReply על שרת Oracle — 129.159.138.4
 
-האתר הראשי [mavash.net](https://mavash.net) נשאר כמו שהוא (אתר העסק על `129.159.138.4`).
-OpenReply רץ על סאב-דומיין פנוי:
+האתר הראשי [mavash.net](https://mavash.net) נשאר כמו שהוא.
+OpenReply רץ **על אותו שרת nginx**, לא על Vercel:
 
-**`https://openreply.mavash.net`**
+**`https://openreply.mavash.net`** → `127.0.0.1:3011` (Docker)
 
-`app.mavash.net` כבר מצביע לשרת הקיים — לא משתמשים בו.
+DNS כבר נכון: A → `129.159.138.4`. אין לשנות ל-CNAME של Vercel.
 
-## מצב DNS עכשיו (25 באוגוסט 2026)
+## SSH מהסוכן
 
-הרשומה קיימת, אבל היא **A → `129.159.138.4`** (אותו שרת nginx של `mavash.net`), לא CNAME ל-Vercel.
+פורט 22 פתוח (`ubuntu@129.159.138.4`). אין מפתח פרטי באף אתר/ריפו קודם.
+כדי לתת גישה, על השרת (מסשן SSH קיים):
 
-מה שקורה בפועל:
+```bash
+mkdir -p ~/.ssh && chmod 700 ~/.ssh
+echo 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIF28PNdkjr9ninTkazhWQJeDQqvciQdcwQpq///2igmr openreply-cloud-agent' >> ~/.ssh/authorized_keys
+chmod 600 ~/.ssh/authorized_keys
+```
 
-- תעודת SSL שמוחזרת היא של `ai.mavash.net` — הדפדפן מציג שגיאת תעודה
-- nginx מפנה כברירת מחדל לאתר אחר (Vercel מאחורי הפרוקסי), **לא** OpenReply
-- Meta לא תוכל לאמת webhook על הכתובת הזו עד שיש SSL תקין על `openreply.mavash.net`
+או הרצה מקומית בלי לתת גישה:
 
-### תיקון
+```bash
+curl -fsSL https://raw.githubusercontent.com/reuvenMAV/0544223911/cursor/openreply-instagram-setup-eb64/openreply/deploy/oracle/install.sh | bash
+```
 
-1. ב-Vercel: הפרויקט של OpenReply, Root Directory `openreply`, אחרי דיפלוי: **Settings → Domains → Add** `openreply.mavash.net`
-2. ב-Google Domains: **מחק** את רשומת ה-A של `openreply`
-3. הוסף במקומה:
-
-| Type | Name / Host | Value |
-| --- | --- | --- |
-| CNAME | `openreply` | הערך ש-Vercel מציג (בדרך כלל `cname.vercel-dns.com`) |
-
-לא להשאיר A ו-CNAME על אותו שם. אחרי שה-CNAME חי, `https://openreply.mavash.net/api/health` אמור להיפתח בלי אזהרת SSL.
-
-## מה להדביק ב-Vercel / Railway / Meta
+## אחרי ההתקנה
 
 | שדה | ערך |
 | --- | --- |
 | `NEXTAUTH_URL` | `https://openreply.mavash.net` |
-| `EMAIL_FROM` | `OpenReply <noreply@mavash.net>` |
 | App Domains | `openreply.mavash.net` |
-| Privacy Policy | `https://openreply.mavash.net/privacy` |
-| Terms of Service | `https://openreply.mavash.net/terms` |
-| Data deletion | `https://openreply.mavash.net/data-deletion` |
-| OAuth redirect | `https://openreply.mavash.net/api/instagram/callback` |
-| Webhook callback | `https://openreply.mavash.net/api/webhook` |
+| OAuth | `https://openreply.mavash.net/api/instagram/callback` |
+| Webhook | `https://openreply.mavash.net/api/webhook` |
+| Privacy | `https://openreply.mavash.net/privacy` |
+| Terms | `https://openreply.mavash.net/terms` |
 | Health | `https://openreply.mavash.net/api/health` |
 
-בלי slash בסוף ה-OAuth וה-webhook.
+מלא ב-`/home/ubuntu/openreply-app/.env` את `RESEND_API_KEY` ושלושת סודות Meta, ואז:
 
-## DNS (Google Domains — ns-cloud-a*.googledomains.com)
-
-אין להשתמש ב-A לאותו IP של `mavash.net`. רק CNAME ל-Vercel:
-
-| Type | Name / Host | Value |
-| --- | --- | --- |
-| CNAME | `openreply` | `cname.vercel-dns.com` (או הערך המדויק במסך Vercel) |
-
-SSL יוצא אוטומטית אחרי שה-CNAME מתייצב.
-
-## מייל (Resend + Gmail קיים)
-
-ה-MX של `mavash.net` הוא Google — לא לגעת בו, כדי לא לשבור את תיבת הדואר.
-
-ב-Resend מאמתים את `mavash.net` ומוסיפים רק את רשומות ה-TXT/CNAME ש-Resend מבקש לשליחה. אחרי האימות:
-
+```bash
+cd /home/ubuntu/openreply-app
+sudo docker compose -f docker-compose.oracle.yml --env-file .env up -d
 ```
-EMAIL_FROM=OpenReply <noreply@mavash.net>
-```
-
-## סדר קצר
-
-1. Deploy ב-Vercel (Root Directory `openreply`)
-2. Domains → Add `openreply.mavash.net` → להעתיק CNAME ל-DNS
-3. `NEXTAUTH_URL=https://openreply.mavash.net` ב-Vercel וב-Railway
-4. להדביק את שורת ה-OAuth וה-webhook ב-Meta
