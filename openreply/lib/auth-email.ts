@@ -140,6 +140,7 @@ export async function sendVerificationRequest(
       fromHost: parseSenderHost(from),
       toDomain: recipientDomain(to),
     });
+    throw new Error("Email sender is not a verified domain");
   }
 
   const result = await postResendEmail({

@@ -108,6 +108,24 @@ describe("sendVerificationRequest", () => {
     );
   });
 
+  it("refuses Resend test senders instead of pretending the mail was delivered", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const fetchImpl = vi.fn();
+    vi.stubGlobal("fetch", fetchImpl);
+
+    await expect(
+      sendVerificationRequest({
+        identifier: "bitreuven@gmail.com",
+        url: "https://openreply.mavash.net/api/auth/callback/resend?token=x",
+        provider: {
+          apiKey: "re_test",
+          from: "OpenReply <onboarding@resend.dev>",
+        },
+      })
+    ).rejects.toThrow("Email sender is not a verified domain");
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
   it("fails closed when the API key is missing", async () => {
     vi.spyOn(console, "error").mockImplementation(() => {});
     await expect(
