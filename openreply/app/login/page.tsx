@@ -1,6 +1,7 @@
 import { EMAIL_PROVIDER_ID, signIn } from "@/lib/auth";
 import { getCampaignTemplate } from "@/lib/templates/campaign-templates";
 import { DemoNotice } from "@/components/demo-notice";
+import { redirect } from "next/navigation";
 
 export const metadata = {
   title: "Login - OpenReply",
@@ -14,6 +15,7 @@ export default async function LoginPage({
     checkEmail?: string;
     callbackUrl?: string;
     template?: string;
+    error?: string;
   }>;
 }) {
   const params = await searchParams;
@@ -23,13 +25,30 @@ export default async function LoginPage({
     ? `/campaigns/new?template=${selectedTemplate.slug}`
     : null;
   const callbackUrl = params.callbackUrl ?? templateCallbackUrl ?? "/dashboard";
+  const sendFailed =
+    params.error === "EmailSend" ||
+    params.error === "EmailSignin" ||
+    params.error === "Configuration";
 
   async function sendMagicLink(formData: FormData) {
     "use server";
-    await signIn(EMAIL_PROVIDER_ID, {
-      email: String(formData.get("email") ?? ""),
-      redirectTo: callbackUrl,
-    });
+    try {
+      await signIn(EMAIL_PROVIDER_ID, {
+        email: String(formData.get("email") ?? ""),
+        redirectTo: callbackUrl,
+      });
+    } catch (error) {
+      const digest =
+        typeof error === "object" && error && "digest" in error
+          ? String((error as { digest?: string }).digest)
+          : "";
+      if (digest.startsWith("NEXT_REDIRECT")) {
+        throw error;
+      }
+      redirect(
+        `/login?error=EmailSend&callbackUrl=${encodeURIComponent(callbackUrl)}`
+      );
+    }
   }
 
   return (
@@ -64,12 +83,21 @@ export default async function LoginPage({
             <div className="text-center py-4">
               <h2 className="text-lg font-semibold mb-2">Check your email</h2>
               <p className="text-sm text-muted">
-                We sent you a secure sign-in link. Open it on this device to
-                continue.
+                If the address is valid, a sign-in link was sent. Open it on this
+                device. Check spam and promotions if it is not in the inbox.
               </p>
             </div>
           ) : (
             <form action={sendMagicLink} className="space-y-5">
+              {sendFailed && (
+                <p
+                  role="alert"
+                  className="text-sm text-red-400 border border-red-500/30 bg-red-500/10 p-3 rounded"
+                >
+                  Could not send a sign-in email. Try again in a minute. If this
+                  keeps happening, the mail sender is not verified.
+                </p>
+              )}
               <div className="space-y-2">
                 <label
                   htmlFor="email"

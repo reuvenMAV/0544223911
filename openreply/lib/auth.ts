@@ -4,6 +4,7 @@ import Resend from "next-auth/providers/resend";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "@/lib/db/client";
 import { ensureWorkspaceForUser, getPrimaryWorkspace } from "@/lib/workspace";
+import { sendVerificationRequest } from "@/lib/auth-email";
 
 type AdapterPrismaClient = Parameters<typeof PrismaAdapter>[0];
 
@@ -27,6 +28,7 @@ export const authConfig = {
       : Resend({
           apiKey: process.env.RESEND_API_KEY ?? "missing-resend-api-key",
           from: emailFrom,
+          sendVerificationRequest,
         }),
   ],
   callbacks: {

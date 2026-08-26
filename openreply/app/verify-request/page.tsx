@@ -18,8 +18,8 @@ export default function VerifyRequestPage() {
         <div className="panel rounded p-8 text-center">
           <h2 className="text-lg font-semibold mb-2">Check your email</h2>
           <p className="text-sm text-muted">
-            We sent you a secure sign-in link. Open it on this device to
-            continue.
+            If the address is valid, a sign-in link was sent. Open it on this
+            device. Check spam and promotions if it is not in the inbox.
           </p>
           <p className="mt-6 text-sm">
             <Link href="/login" className="text-accent hover:underline">
