@@ -10,11 +10,11 @@ if (!base) {
 }
 
 const ASSETS = [
-  ["/assets/yael-hero-spa_d491bd84.jpg", 164578, "image/jpeg"],
-  ["/assets/yael-pedicure-detail_d4a4994b.jpg", 278968, "image/jpeg"],
-  ["/assets/yael-manicure-detail_2f9812d6.jpg", 273558, "image/jpeg"],
-  ["/assets/yael-studio-atmosphere_eb67dd3d.jpg", 192994, "image/jpeg"],
-  ["/assets/yael-mavashev-logo_6c718b1a.png", 336614, "image/png"],
+  ["/assets/yael-hero-spa_d491bd84.jpg", 164578, "image/webp"],
+  ["/assets/yael-pedicure-detail_d4a4994b.jpg", 278968, "image/webp"],
+  ["/assets/yael-manicure-detail_2f9812d6.jpg", 273558, "image/webp"],
+  ["/assets/yael-studio-atmosphere_eb67dd3d.jpg", 192994, "image/webp"],
+  ["/assets/yael-mavashev-logo_6c718b1a.png", 336614, "image/webp"],
 ];
 
 let failed = 0;
@@ -57,7 +57,6 @@ if (!jsHref) {
   else fail(`GET ${jsHref[0]} -> ${js.status}`);
   const body = js.buf.toString("utf8");
   for (const [path] of ASSETS) {
-    if (path.endsWith(".png")) continue;
     if (body.includes(path)) pass(`bundle refs ${path}`);
     else fail(`bundle missing ${path}`);
   }
@@ -75,7 +74,7 @@ if (!jsHref) {
 for (const [path, bytes, type] of ASSETS) {
   const res = await get(path);
   const okStatus = res.status === 200;
-  const okType = res.type === type || res.type.startsWith("image/");
+  const okType = res.type === type || res.type === "image/webp" || res.type.startsWith("image/");
   const okBytes = res.buf.length === bytes;
   if (okStatus && okType && okBytes) {
     pass(`GET ${path} -> 200 ${res.type} ${res.buf.length}`);
