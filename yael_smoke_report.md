@@ -33,3 +33,5 @@ smoke passed against https://yael.mavash.net
 ```
 
 Copy of the script: `scripts/yael-smoke.mjs`.
+
+Re-run after the WebP Content-Type + header logo fix: **passed**. Assets now report `image/webp`. Logo is referenced in the bundle. `/manus-storage/yael-hero-spa_d491bd84.jpg` is 200 from the local file.

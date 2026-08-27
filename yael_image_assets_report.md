@@ -24,7 +24,7 @@ Then `pnpm build` ran in `/home/ubuntu/yael/app` only, followed by `systemctl re
 
 Homepage `https://yael.mavash.net/` is 200. Production JS bundle contains the four `/assets/yael-*.jpg` paths and **zero** `/manus-storage/` image refs.
 
-Old `/manus-storage/yael-hero-spa_d491bd84.jpg` still returns 500 (`Storage proxy not configured`) because forge keys were not added. The live page no longer requests that path.
+Follow-up: the five files are **WebP** with `.jpg`/`.png` names. Express was sending `image/jpeg` / `image/png`, which breaks Safari. Static serving now sets `Content-Type: image/webp`. The logo is in the header. Old `/manus-storage/yael-*` paths serve the same local files (200) so a cached page still shows photos.
 
 ## No-touch
 
