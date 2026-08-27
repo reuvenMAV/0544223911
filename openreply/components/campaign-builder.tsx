@@ -23,6 +23,7 @@ import {
   IMPORT_ACCOUNT_KEY,
   type ImportRow,
 } from "@/lib/import-queue";
+import { isActiveForCampaignSave } from "@/lib/campaigns/create-defaults";
 
 type TriggerScope = "specific" | "any" | "next";
 type MatchMode = "specific" | "any";
@@ -142,7 +143,7 @@ export default function CampaignBuilder({ mode, campaignId }: CampaignBuilderPro
   const [selectedAccountId, setSelectedAccountId] = useState("");
 
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
-  const [isActive, setIsActive] = useState(true);
+  const [isActive, setIsActive] = useState(false);
 
   const [triggerScope, setTriggerScope] = useState<TriggerScope>("specific");
   const [postId, setPostId] = useState<string | null>(null);
@@ -617,13 +618,28 @@ export default function CampaignBuilder({ mode, campaignId }: CampaignBuilderPro
             ))}
           <button
             type="button"
-            onClick={() => handleSubmit(mode === "new" ? true : isActive)}
+            data-testid="campaign-save"
+            onClick={() =>
+              handleSubmit(isActiveForCampaignSave(mode, isActive))
+            }
             disabled={saving}
             className="rounded-lg bg-accent px-5 py-2 text-sm font-medium text-white hover:bg-accent-hover disabled:opacity-50"
           >
-            {saving ? "Saving…" : mode === "new" ? "Go Live" : "Save changes"}
+            {saving
+              ? "Saving…"
+              : mode === "new"
+                ? "Save as paused"
+                : "Save changes"}
           </button>
         </div>
+        {mode === "new" && (
+          <p
+            data-testid="campaign-save-paused-hint"
+            className="basis-full text-xs text-muted"
+          >
+            This campaign will be saved paused and will not send messages.
+          </p>
+        )}
       </div>
 
       {/* min-w-0 on the cells: a grid item defaults to min-width:auto, so a

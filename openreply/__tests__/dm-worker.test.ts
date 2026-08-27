@@ -367,6 +367,22 @@ describe("DM Worker — Full Pipeline", () => {
     expect(mockPrisma.dmLog.upsert).not.toHaveBeenCalled();
   });
 
+  it("queries only active campaigns so paused drafts never send DMs", async () => {
+    mockPrisma.automation.findMany.mockResolvedValue([]);
+    const processor = getProcessor();
+
+    await processor(createMockJob());
+
+    expect(mockPrisma.automation.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ isActive: true }),
+      })
+    );
+    expect(mockSendPrivateReply).not.toHaveBeenCalled();
+    expect(mockPrisma.dmLog.upsert).not.toHaveBeenCalled();
+    expect(mockReserveWorkspaceDMSend).not.toHaveBeenCalled();
+  });
+
   it("should skip when keywords do not match", async () => {
     mockMatchKeywords.mockReturnValue({ matched: false, matchedKeyword: null });
     const processor = getProcessor();
