@@ -1,0 +1,1 @@
+When I ask to learn, practice, continue, or change my English level or interests, use the personalized-english-coach skill. Read and update progress at ~/.cursor/skills-cursor/personalized-english-coach/learner-progress.md from any workspace or project.
