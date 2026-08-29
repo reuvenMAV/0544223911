@@ -7,6 +7,9 @@ import { ChoiceButtons } from "@/components/ChoiceButtons";
 import { ErrorBanner } from "@/components/ErrorBanner";
 import { MessageList } from "@/components/MessageList";
 import { OtherInput } from "@/components/OtherInput";
+import {
+  ensureLearnerSessionIds,
+} from "@/lib/learner-session";
 import type {
   ChatMessage,
   Choice,
@@ -14,9 +17,6 @@ import type {
   CoachRequest,
   CoachResponse,
 } from "@/lib/types";
-
-const LEARNER_KEY = "english_coach_learner_id";
-const SESSION_KEY = "english_coach_session_id";
 
 function readCookie(name: string): string | null {
   const match = document.cookie
@@ -28,24 +28,6 @@ function readCookie(name: string): string | null {
 function writeCookie(name: string, value: string) {
   const maxAge = 60 * 60 * 24 * 365;
   document.cookie = `${name}=${encodeURIComponent(value)}; path=/; max-age=${maxAge}; samesite=lax`;
-}
-
-function ensureIds(search: string): { learnerId: string; sessionId: string } {
-  const params = new URLSearchParams(search);
-  const fromQuery = params.get("learner");
-  let learnerId =
-    fromQuery || readCookie(LEARNER_KEY) || localStorage.getItem(LEARNER_KEY);
-  if (!learnerId) learnerId = uuidv4();
-  writeCookie(LEARNER_KEY, learnerId);
-  localStorage.setItem(LEARNER_KEY, learnerId);
-
-  let sessionId =
-    readCookie(SESSION_KEY) || localStorage.getItem(SESSION_KEY);
-  if (!sessionId) sessionId = uuidv4();
-  writeCookie(SESSION_KEY, sessionId);
-  localStorage.setItem(SESSION_KEY, sessionId);
-
-  return { learnerId, sessionId };
 }
 
 export function ChatShell() {
@@ -82,7 +64,12 @@ export function ChatShell() {
   }, [phase]);
 
   useEffect(() => {
-    const ids = ensureIds(window.location.search);
+    const ids = ensureLearnerSessionIds({
+      search: window.location.search,
+      readCookie,
+      writeCookie,
+      storage: window.localStorage,
+    });
     setLearnerId(ids.learnerId);
     setSessionId(ids.sessionId);
     setBootstrapped(true);
@@ -189,17 +176,21 @@ export function ChatShell() {
 
   if (!bootstrapped) {
     return (
-      <div className="mx-auto flex min-h-dvh max-w-xl items-center justify-center px-4">
+      <main className="mx-auto flex min-h-dvh max-w-xl items-center justify-center px-4">
+        <h1 className="sr-only">מורה אישי לאנגלית — טוען</h1>
         <p className="text-sm text-teal-900/70">טוען את השיעור...</p>
-      </div>
+      </main>
     );
   }
 
   return (
-    <div className="mx-auto flex min-h-dvh w-full max-w-xl flex-col px-4 pb-8 pt-6">
+    <main className="mx-auto flex min-h-dvh w-full max-w-xl flex-col px-4 pb-8 pt-6">
+      <h1 className="sr-only">מורה אישי לאנגלית — צ׳אט למידה</h1>
       <header className="mb-4 flex items-center justify-between gap-3">
         <div>
-          <p className="font-display text-xl text-teal-950">מורה אישי לאנגלית</p>
+          <p className="font-display text-xl text-teal-950" aria-hidden="true">
+            מורה אישי לאנגלית
+          </p>
           <p className="text-sm text-teal-900/70">{phaseLabel}</p>
         </div>
         <button
@@ -259,6 +250,6 @@ export function ChatShell() {
         ) : null}
         <div ref={bottomRef} />
       </div>
-    </div>
+    </main>
   );
 }

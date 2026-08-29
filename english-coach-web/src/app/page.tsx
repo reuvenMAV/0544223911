@@ -9,12 +9,12 @@ export default function HomePage() {
       />
 
       <section className="max-w-xl space-y-5">
-        <p className="font-display text-5xl leading-none text-teal-950 sm:text-6xl">
+        <h1 className="font-display text-5xl leading-none text-teal-950 sm:text-6xl">
           מורה אישי לאנגלית
-        </p>
-        <h1 className="text-xl font-semibold text-teal-950/90 sm:text-2xl">
-          לומדים אנגלית אמריקאית דרך מה שמעניין אתכם — בקצב שלכם.
         </h1>
+        <p className="text-xl font-semibold text-teal-950/90 sm:text-2xl">
+          לומדים אנגלית אמריקאית דרך מה שמעניין אתכם — בקצב שלכם.
+        </p>
         <p className="max-w-md text-base leading-7 text-teal-900/80">
           היכרות קצרה, בדיקת רמה ידידותית, ושיעור ראשון מותאם אישית. בלי טפסים
           ארוכים ובלי לחץ.

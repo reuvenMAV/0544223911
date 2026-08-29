@@ -749,16 +749,15 @@ export async function runLocalCoach(
         response: resumeResponse(progress, req.sessionId),
       };
     }
+  } else if (req.messageType === "end_lesson") {
+    result = lessonReply(progress, req);
   } else if (progress.currentPhase === "onboarding") {
     result = onboardingReply(progress, userText(req));
   } else if (progress.currentPhase === "placement") {
     result = { ...placementReply(progress, req) };
   } else if (progress.currentPhase === "planning") {
     result = planningReply(progress, userText(req));
-  } else if (
-    progress.currentPhase === "lesson" ||
-    req.messageType === "end_lesson"
-  ) {
+  } else if (progress.currentPhase === "lesson") {
     result = lessonReply(progress, req);
   } else if (progress.currentPhase === "recap") {
     if (userText(req).includes("שיעור חדש")) {

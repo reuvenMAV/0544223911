@@ -11,7 +11,7 @@ const eslintConfig = [
   ...nextVitals,
   ...nextTs,
   {
-    ignores: [".next/**", "node_modules/**", "out/**"],
+    ignores: [".next/**", "node_modules/**", "out/**", "coverage/**", "test-results/**", "playwright-report/**"],
   },
   {
     files: ["src/components/ChatShell.tsx"],

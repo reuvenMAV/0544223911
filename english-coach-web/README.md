@@ -31,9 +31,62 @@ npm run dev
 ```bash
 npm run lint
 npm run typecheck
-npm run test
+npm test
+npm run test:watch
+npm run test:coverage
+npm run test:e2e
 npm run build
 ```
+
+## בדיקות (Testing)
+
+### Vitest — Unit / Component / API
+
+- **Unit**: `tests/unit/` — learner/session IDs, validation, progress merge, mock coach phases, n8n client
+- **Component**: `tests/component/` — landing, messages, choices, other input, loading/error/retry
+- **API contract**: `tests/api/` — `/api/chat`, `/api/recap/[sessionId]`, 4xx/5xx, rate limit
+- **Security**: `tests/security/` — אין secrets בצד לקוח, sanitization, בידוד recap בין לומדים
+- **Accessibility (RTL)**: `tests/accessibility/` — keyboard, labels, focus, mobile targets
+
+```bash
+npm test
+npm run test:coverage
+```
+
+כיסוי מינימלי **80%** מוגדר עבור:
+- `src/lib/schemas/coach-api.ts`
+- `src/lib/validation.ts`
+- `src/lib/learner-session.ts`
+- `src/lib/progress-merge.ts`
+- `src/app/api/chat/route.ts`
+- `src/app/api/recap/**/route.ts`
+
+### Playwright — E2E
+
+```bash
+npm run build
+npm run test:e2e
+```
+
+תרחישים:
+1. `e2e/new-learner.spec.ts` — לומד חדש + כפתורי בחירה
+2. `e2e/placement-to-recap.spec.ts` — placement → שיעור → recap
+3. `e2e/progress-persistence.spec.ts` — המשכיות אחרי refresh
+4. `e2e/accessibility.spec.ts` — axe על landing + chat (מובייל)
+
+הבדיקות **לא** פונות ל-n8n, Supabase או Xiaomi MiMo אמיתיים.
+
+### Fixtures ו-Mocks
+
+| נתיב | תפקיד |
+|---|---|
+| `tests/fixtures/coach-payloads.ts` | בקשות/תשובות API תקינות |
+| `tests/fixtures/progress.ts` | progress ו-recap לדוגמה |
+| `tests/mocks/n8n.ts` | mock ל-fetch של webhook |
+| `tests/mocks/mimo.ts` | תשובות JSON של MiMo |
+| `tests/mocks/supabase.ts` | עזרי env ל-Supabase |
+
+Schemas משותפים: `src/lib/schemas/coach-api.ts` (Zod + sanitization).
 
 ## משתני סביבה
 
@@ -72,6 +125,7 @@ Workflow לייבוא: [`n8n/english-coach-chat.workflow.json`](./n8n/english-co
 - מנוע לימוד מקומי ל-MVP
 - proxy ל-n8n
 - שכבת progress (memory או Supabase)
+- תשתית בדיקות מלאה
 
 ### צריך להגדיר מחוץ לקוד
 - Instance של n8n + credential Xiaomi MiMo

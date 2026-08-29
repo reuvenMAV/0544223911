@@ -4,6 +4,12 @@ import type { CoachPhase, LessonRecap, ProgressSnapshot } from "@/lib/types";
 const memoryProgress = new Map<string, ProgressSnapshot>();
 const memoryRecaps = new Map<string, LessonRecap>();
 
+/** Test-only reset for deterministic isolation. */
+export function __resetProgressStoresForTests() {
+  memoryProgress.clear();
+  memoryRecaps.clear();
+}
+
 export function createEmptyProgress(): ProgressSnapshot {
   return {
     currentPhase: "onboarding",

@@ -1,25 +1,20 @@
-import { CoachRequestSchema, CoachResponseSchema } from "@/lib/types";
+export {
+  ChoiceSchema,
+  CoachMetaSchema,
+  CoachPhaseSchema,
+  CoachRequestSchema,
+  CoachResponseSchema,
+  MessageTypeSchema,
+  friendlyParseError,
+  parseCoachRequest,
+  parseCoachResponse,
+  sanitizeCoachRequest,
+  sanitizeUserText,
+} from "@/lib/schemas/coach-api";
 
-export function parseCoachRequest(input: unknown) {
-  return CoachRequestSchema.safeParse(input);
-}
-
-export function parseCoachResponse(input: unknown) {
-  return CoachResponseSchema.safeParse(input);
-}
-
-export function friendlyParseError(message = "תשובה לא תקינה מהשרת"): {
-  replyText: string;
-  choices: never[];
-  phase: "onboarding";
-  progressSaved: false;
-  meta: Record<string, never>;
-} {
-  return {
-    replyText: `${message}. אפשר לנסות שוב בעוד רגע.`,
-    choices: [],
-    phase: "onboarding",
-    progressSaved: false,
-    meta: {},
-  };
-}
+export type {
+  Choice,
+  CoachPhase,
+  CoachRequest,
+  CoachResponse,
+} from "@/lib/schemas/coach-api";
