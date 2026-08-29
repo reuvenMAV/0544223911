@@ -1,4 +1,19 @@
 # Simple Website Using Github Pages
+
+## n8n Intent Router System
+
+This repository now also includes a runnable n8n workflow for a multi-agent routing system:
+
+- Workflow file: `n8n/workflows/intent-router-openrouter.json`
+- Full setup guide: `docs/n8n-intent-router.md`
+
+The workflow implements:
+- Input normalization (`user_id`, `message`)
+- Intent classification router (`billing`, `general`, `support`, `service`)
+- Switch-based specialist routing with fallback
+- Per-user memory (last 5 interactions)
+- JSON response to webhook caller
+
 Make a simple HTML website and publish it using Github Pages.  
 View example: https://zirafa.github.io/simple-website-template/
 
