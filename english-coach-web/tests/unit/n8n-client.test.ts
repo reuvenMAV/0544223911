@@ -44,6 +44,10 @@ describe("n8n client", () => {
         }),
       }),
     );
+    const [, init] = fetchMock.mock.calls[0];
+    const body = JSON.parse(String(init?.body));
+    expect(body.channel).toBe("web");
+    expect(body.requestId).toBeTruthy();
   });
 
   it("omits secret header when not configured", async () => {

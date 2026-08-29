@@ -118,6 +118,17 @@ Schemas משותפים: `src/lib/schemas/coach-api.ts` (Zod + sanitization).
 הוראות מלאות: [`n8n/SETUP.md`](./n8n/SETUP.md)  
 Workflow לייבוא: [`n8n/english-coach-chat.workflow.json`](./n8n/english-coach-chat.workflow.json)
 
+## Telegram Bot
+
+ערוץ נוסף לאותו מורה — הלוגיקה ב-n8n, progress ב-Supabase.
+
+- הגדרה: [`n8n/TELEGRAM-SETUP.md`](./n8n/TELEGRAM-SETUP.md)
+- Workflow: [`n8n/english-coach-telegram.workflow.json`](./n8n/english-coach-telegram.workflow.json)
+- קישור מהאתר: `/chat` → **צור קוד קישור** → `/link <קוד>` בבוט
+- API פנימי: `POST /api/telegram/handle` (webhook), `POST /api/telegram/link-code` (קוד חד-פעמי)
+
+משתני סביבה (שמות בלבד): `TELEGRAM_BOT_TOKEN`, `TELEGRAM_BOT_USERNAME`, `TELEGRAM_WEBHOOK_SECRET`, `NEXT_PUBLIC_SITE_URL`
+
 ## מה מוגדר כאן ומה נשאר חיצוני
 
 ### מוגדר ב-Next.js
@@ -125,6 +136,7 @@ Workflow לייבוא: [`n8n/english-coach-chat.workflow.json`](./n8n/english-co
 - מנוע לימוד מקומי ל-MVP
 - proxy ל-n8n
 - שכבת progress (memory או Supabase)
+- אינטגרציית Telegram (processor, link codes, webhook handler)
 - תשתית בדיקות מלאה
 
 ### צריך להגדיר מחוץ לקוד
@@ -141,7 +153,6 @@ Workflow לייבוא: [`n8n/english-coach-chat.workflow.json`](./n8n/english-co
 
 - דיבור/הקלטה
 - Auth מלא (אימייל/Google)
-- טלגרם
 - היסטוריית צ'אט מלאה
 - fallback NVIDIA/Groq
 - חשבונות הורה/ילד

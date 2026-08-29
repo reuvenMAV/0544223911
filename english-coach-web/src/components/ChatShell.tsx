@@ -7,6 +7,7 @@ import { ChoiceButtons } from "@/components/ChoiceButtons";
 import { ErrorBanner } from "@/components/ErrorBanner";
 import { MessageList } from "@/components/MessageList";
 import { OtherInput } from "@/components/OtherInput";
+import { TelegramLinkPanel } from "@/components/TelegramLinkPanel";
 import {
   ensureLearnerSessionIds,
 } from "@/lib/learner-session";
@@ -248,6 +249,7 @@ export function ChatShell() {
             }}
           />
         ) : null}
+        <TelegramLinkPanel />
         <div ref={bottomRef} />
       </div>
     </main>

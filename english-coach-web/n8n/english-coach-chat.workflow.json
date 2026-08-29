@@ -33,7 +33,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const body = items[0].json.body || items[0].json;\nconst required = ['learnerId','sessionId','messageType'];\nfor (const key of required) {\n  if (!body[key]) throw new Error('Missing ' + key);\n}\nreturn [{ json: body }];"
+        "jsCode": "const body = items[0].json.body || items[0].json;\nconst required = ['learnerId','sessionId','messageType'];\nfor (const key of required) {\n  if (!body[key]) throw new Error('Missing ' + key);\n}\nconst channel = body.channel || 'web';\nconst meta = {\n  channel,\n  requestId: body.requestId || null,\n  promptVersion: 'coach-he-1',\n  schemaVersion: 'chat-response.v1',\n  workflowVersion: 'english-coach-1.1.0'\n};\nreturn [{ json: { ...body, channel, meta } }];"
       },
       "id": "validate",
       "name": "Validate Input",

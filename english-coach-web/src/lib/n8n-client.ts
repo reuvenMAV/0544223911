@@ -1,6 +1,11 @@
 import type { CoachRequest, CoachResponse } from "@/lib/types";
 import { parseCoachResponse } from "@/lib/validation";
 import { runLocalCoach } from "@/lib/coach/mock-engine";
+import { v4 as uuidv4 } from "uuid";
+import {
+  ACCEPTED_SCHEMA_VERSIONS,
+  WEB_CLIENT_VERSION,
+} from "@/lib/versions";
 
 const DEFAULT_TIMEOUT_MS = 25_000;
 
@@ -32,7 +37,18 @@ async function callN8n(req: CoachRequest): Promise<CoachResponse> {
         "Content-Type": "application/json",
         ...(secret ? { "x-webhook-secret": secret } : {}),
       },
-      body: JSON.stringify(req),
+      body: JSON.stringify({
+        ...req,
+        channel: "web",
+        requestId: uuidv4(),
+        clientVersion: WEB_CLIENT_VERSION,
+        acceptedSchemaVersions: [...ACCEPTED_SCHEMA_VERSIONS],
+        telegram: {
+          telegramUserId: null,
+          chatId: null,
+          updateId: null,
+        },
+      }),
       signal: controller.signal,
     });
 
