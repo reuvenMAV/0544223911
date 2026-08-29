@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "metricool-mcp": {
+      "url": "https://ai.metricool.com/mcp",
+      "type": "http"
+    },
+    "n8n-mcp": {
+      "type": "http",
+      "url": "http://localhost:5678/mcp-server/http",
+      "headers": {
+        "Authorization": "Bearer <PASTE_N8N_MCP_TOKEN_HERE>"
+      }
+    }
+  }
+}

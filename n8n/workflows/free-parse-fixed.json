@@ -1,0 +1,1286 @@
+{
+  "name": "Free Parse (fixed)",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "id": "eea2f512-74d7-4856-9ef4-52d06831e610",
+      "name": "Telegram Триггер",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -704,
+        1184
+      ],
+      "webhookId": "dabefb17-b14f-4aa5-b31d-c5f9efd5d97c",
+      "credentials": {
+        "telegramApi": {
+          "id": "zSRCPzUsq8nGk1nN",
+          "name": "מבשב דפדפן"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cond1",
+              "leftValue": "={{ $json.message.text }}",
+              "rightValue": "סוכן",
+              "operator": {
+                "type": "string",
+                "operation": "startsWith"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "013734e8-9ea1-4816-8422-6c0a13fc29bb",
+      "name": "Триггер-фраза?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -256,
+        1184
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a1",
+              "name": "query",
+              "type": "string",
+              "value": "={{ $json.message.text.replace(/^\\s*סוכן\\s*/i, '') }}"
+            },
+            {
+              "id": "a2",
+              "name": "chatId",
+              "type": "string",
+              "value": "={{ $json.message.chat.id }}"
+            },
+            {
+              "id": "a3",
+              "name": "pageUrl",
+              "type": "string",
+              "value": "={{ ($json.message.entities || []).find(e => e.type === 'text_link' && e.url)?.url || ($json.message.text.match(/https?:\\/\\/[^\\s]+/) || [])[0] || '' }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "5cf7316c-f140-404c-a467-2f5393bb66bb",
+      "name": "Запрос (агент)",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        608,
+        720
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Запрос (агент)').item.json.pageUrl ? 'כתובת פתיחה (חובה בשביל navigate): ' + $('Запрос (агент)').item.json.pageUrl + '\\n\\n' : '' }}{{ $('Запрос (агент)').item.json.query + '\\n\\nחשוב: ענה למשתמש בעברית בלבד.' }}",
+        "needsFallback": true,
+        "options": {
+          "systemMessage": "שפת תשובה (חובה):\n- כל תשובה למשתמש — בעברית בלבד (כולל דוחות שגיאה וסיכומים).\n- אל תענה ברוסית, אנגלית או שפה אחרת, גם אם התוכן בדף בשפה אחרת.\n- אפשר לצטט שמות/כותרות מקור בשפת המקור, אבל ההסבר והסיכום בעברית.\n- אם המשתמש כתב בעברית — ענה בעברית פשוטה וברורה.\n\nאתה — סוכן רשת אוניברסלי. תביא את המשימה לתוצאה בלי לשאול שאלות את המשתמש.\n\nכלים:\n1) «דפדפן (Playwright MCP → Steel)»: browser_navigate, browser_snapshot, browser_click(ref), browser_type(ref,submit), browser_fill_form, browser_scroll, browser_wait_for, browser_navigate_back, browser_run_code_unsafe, browser_evaluate.\n2) «Steel: טעינת דף» — markdown בלי UI. רק קריאה, כשאין צורך בקליקים.\n\nחוקים קשיחים:\n1. אל תשאל שאלות. אסור «אנסה», «תעדכן אותי», «צריך זמן». שגיאת tool → בשקט לניסיון הבא.\n2. סיום — כשיש תוצאה או שנגמרו 4 ניסיונות שונים (דו\"ח: מה ניסית).\n3. «תמשיך» / «הלאה» → קודם browser_snapshot.\n\nאינטראקציה (קליקים, טאבים, שרשראות שלבים):\nדף = browser_snapshot (עץ עם ref כמו e55), לא תמונה.\nמחזור שלב: snapshot → מצא link/button/tab/textbox לפי טקסט → browser_click({ref}) או browser_type({ref}) → snapshot → בדוק URL/תוכן → השלב הבא.\nאסור ב-browser_click: target, selector, CSS, xpath — רק ref מ-snapshot טרי.\nשגיאת קליק → snapshot → ref שוב → run_code getByRole/getByText → navigate לפי /url: מה-snapshot → scroll+snapshot.\n\nמעבר לאתר אחר:\n1) snapshot בדף הנוכחי.\n2) אתר חיצוני — browser_click({ref}) על link («אתר», «עבור», דומיין). לא browser_navigate עם URL מהזיכרון.\n3) אסור לקצר קישורי redirect (link.*, go.*). /url: מלא רק מה-snapshot או קליק על ref.\n4) אחרי קליק — snapshot, Page URL צריך להתחלף לדומיין היעד.\n5) redirect שבור/שגיאה → browser_navigate_back, או Bing: https://www.bing.com/search?q=<חברה+אתר>\n6) לחזור לאתר המקורי → browser_navigate_back.\n\nחיפוש בשירותים ידועים — URL ישירות בשורה, אל תיגע בשדה:\n- 2ГИС: https://2gis.ru/<עיר>/search/<שאילתה>\n- Bing: https://www.bing.com/search?q=<שאילתה>\n- Ozon: https://www.ozon.ru/search/?text=<שאילתה>\n- Wildberries: https://www.wildberries.ru/catalog/0/search.aspx?search=<שאילתה>\n- Avito: https://www.avito.ru/all?q=<שאילתה>\nאחרי navigate → snapshot → נתונים. אל תמציא תבניות חיפוש אחרות.\n\nהקלדה בשדה (אם אין URL חיפוש) — מינימום 3 ניסיונות:\nשלב 0: browser_snapshot — textbox/searchbox/combobox.\nשלב 1: ref מ-snapshot → browser_click(ref) → browser_type(ref, טקסט, submit:true).\nשלב 2: browser_run_code_unsafe — התבנית המלאה:\nasync (page) => {\n  const text = 'טקסט';\n  const tries = [\n    () => page.getByRole('searchbox').first(),\n    () => page.getByRole('textbox').first(),\n    () => page.locator('input[type=search], input[placeholder*=\"search\" i], input[placeholder*=\"חיפוש\" i], textarea').first(),\n    () => page.locator('[contenteditable=\"true\"]').first(),\n  ];\n  for (const get of tries) {\n    try { const el = get(); await el.click({timeout:3000}); await el.fill(text); await el.press('Enter'); return 'ok:' + page.url(); } catch(e) {}\n  }\n  await page.keyboard.press('Tab'); await page.keyboard.type(text); await page.keyboard.press('Enter');\n  return 'kb:' + page.url();\n}\nשלב 3: browser_evaluate — input focus, value, dispatchEvent, Enter.\nשלב 4: browser_snapshot — בדוק את התוצאה.\n\nאיסוף נתונים:\n- snapshot לפני חילוץ. קרא link/listitem/text מהעץ.\n- תוכן מכווץ → click(ref) → snapshot.\n- מעט נתונים → run_code לפי roles/טקסט מה-snapshot, לא לפי ניחוש class/id.\n- snapshot חתוך → Steel scrape עם Page URL.\n- אל תמציא נתונים.\n\nשונות:\n- pageUrl במשימה → browser_navigate.\n- קאפצ'ה: http://localhost:3000/ui → «תמשיך».\n\nסיום תמיד בעברית בלבד: תוצאה קצרה וברורה + באילו כלים השתמשת. בלי רוסית/אנגלית בגוף התשובה.",
+          "maxIterations": 30,
+          "returnIntermediateSteps": true,
+          "batching": {
+            "batchSize": 1,
+            "delayBetweenBatches": 3000
+          }
+        }
+      },
+      "id": "cd37f83e-2940-4c9b-9e40-b23fa7193cb1",
+      "name": "ИИ-агент (Steel)",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        1024,
+        720
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "b1",
+              "name": "text",
+              "type": "string",
+              "value": "={{ '🤖 Free Parse · סוכן\\n\\n' + (($json.output || '(תשובה ריקה)').toString()) + '\\n\\n👁 תצוגה חיה: http://localhost:3000/ui' }}"
+            },
+            {
+              "id": "b2",
+              "name": "chatId",
+              "type": "string",
+              "value": "={{ $('Запрос (агент)').item.json.chatId }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "e02eecc6-8106-48a7-87b4-5646896439a1",
+      "name": "Сообщение (агент)",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1632,
+        704
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chatId }}",
+        "text": "={{ $json.text }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "id": "24d7f105-e18b-451c-a0cb-793a9b066d8a",
+      "name": "Ответ в Telegram (агент)",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1952,
+        704
+      ],
+      "webhookId": "78e8d03a-40f3-4d17-aadc-dd8cc29b9ace",
+      "credentials": {
+        "telegramApi": {
+          "id": "zSRCPzUsq8nGk1nN",
+          "name": "מבשב דפדפן"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c1",
+              "name": "query",
+              "value": "={{ $json.message.text }}",
+              "type": "string"
+            },
+            {
+              "id": "c2",
+              "name": "chatId",
+              "value": "={{ $json.message.chat.id }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "646fd2d7-46f4-4876-9e07-5679481fd8e7",
+      "name": "Запрос (парсер)",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        912,
+        2288
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://steel:3000/v1/scrape",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { url: 'https://www.bing.com/search?q=' + encodeURIComponent($json.query), format: ['markdown'], delay: 3000 } }}",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "a40f9385-c384-4d33-9f10-2ededbfb29c4",
+      "name": "Steel: выдача поиска",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1152,
+        2288
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const STEEL = 'http://steel:3000/v1/scrape';\nconst q = $('Запрос (парсер)').first().json;\n\nasync function steelScrape(url, delay = 3000) {\n  return await this.helpers.httpRequest({\n    method: 'POST', url: STEEL, json: true,\n    body: { url, format: ['markdown'], delay },\n    timeout: 55000,\n  });\n}\n\nasync function fetchSerp(query) {\n  const urls = [\n    `https://www.bing.com/search?q=${encodeURIComponent(query)}`,\n    `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`,\n  ];\n  let lastErr;\n  for (const u of urls) {\n    try {\n      const r = await steelScrape.call(this, u);\n      const links = Array.isArray(r.links) ? r.links : [];\n      const md = (r.content && r.content.markdown) || '';\n      if (links.length > 3 || md.length > 150) return r;\n    } catch (e) { lastErr = e; }\n  }\n  throw lastErr || new Error('SERP failed');\n}\n\nfunction decodeBing(u) {\n  try {\n    const m = u.match(/[?&]u=a1([^&]+)/);\n    if (!m) return null;\n    let b64 = m[1].replace(/-/g, '+').replace(/_/g, '/');\n    while (b64.length % 4) b64 += '=';\n    const dec = Buffer.from(b64, 'base64').toString('utf8');\n    return /^https?:\\/\\//i.test(dec) ? dec : null;\n  } catch (e) { return null; }\n}\n\nfunction decodeDdg(u) {\n  try {\n    const m = u.match(/[?&]uddg=([^&]+)/i);\n    if (m) return decodeURIComponent(m[1]);\n  } catch (e) {}\n  return null;\n}\n\nfunction resolveUrl(u) {\n  if (/bing\\.com\\/ck\\/a/i.test(u)) return decodeBing(u);\n  if (/duckduckgo\\.com\\/l\\//i.test(u)) return decodeDdg(u);\n  if (/^https?:\\/\\//i.test(u) && !/(bing|microsoft|msn|duckduckgo)\\.com/i.test(u)) return u;\n  return null;\n}\n\nlet res = $input.first().json;\nif (res.error || !Array.isArray(res.links) || res.links.length < 3) {\n  try { res = await fetchSerp.call(this, q.query); } catch (e) {\n    return [{ json: { chatId: q.chatId, query: q.query, results: [], error: 'החיפוש לא זמין כרגע. נסה שוב בעוד דקה או עם שאילתה קצרה יותר.' } }];\n  }\n}\n\nconst links = Array.isArray(res.links) ? res.links : [];\nconst nav = /^(skip to content|accessibility feedback|all|images|videos|maps|news|more|tools|date|flights|travel|русский|past .*|next|\\d+)$/i;\nconst map = new Map();\nfor (const l of links) {\n  const real = resolveUrl(l.url || '');\n  if (!real || /(bing|microsoft|msn|duckduckgo|go\\.microsoft)\\.com/i.test(real)) continue;\n  let t = (l.text || '').replace(/https?:\\/\\/\\S+/g, '').trim();\n  if (nav.test(t) || t.length < 2) continue;\n  const prev = map.get(real) || '';\n  if (t.length > prev.length) map.set(real, t);\n}\nconst results = [];\nfor (const [url, title] of map) {\n  results.push({ title: title || url, url });\n  if (results.length >= 5) break;\n}\nreturn [{ json: { chatId: q.chatId, query: q.query, results } }];"
+      },
+      "id": "24b0cf16-d106-4c56-a226-f2d6d89e15d6",
+      "name": "Разобрать результаты",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1408,
+        2288
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "d1",
+              "name": "text",
+              "type": "string",
+              "value": "={{ (() => { const esc = (s) => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); const q = esc($json.query); if ($json.error) return '🔎 Free Parse · חיפוש\\nשאילתה: ' + q + '\\n\\n' + esc($json.error); const lines = ($json.results || []).map((r, i) => (i+1) + '. ' + esc(r.title) + '\\n' + esc(r.url)); const body = lines.length ? lines.join('\\n\\n') : 'לא נמצא כלום. שלח שאילתה קצרה עם מילות מפתח.'; return '🔎 Free Parse · חיפוש\\nשאילתה: ' + q + '\\n\\n' + body; })() }}"
+            },
+            {
+              "id": "d2",
+              "name": "chatId",
+              "type": "string",
+              "value": "={{ $json.chatId }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "118e3d12-fce3-4984-8f2a-75a69a3a6f05",
+      "name": "Сообщение (парсер)",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1728,
+        2288
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chatId }}",
+        "text": "={{ $json.text }}",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "HTML"
+        }
+      },
+      "id": "a63a9cf8-2ae6-45df-8906-1ea52b6807e1",
+      "name": "Ответ в Telegram (парсер)",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2048,
+        2096
+      ],
+      "webhookId": "58745181-13ff-48e4-a379-f24f3ac7b78c",
+      "credentials": {
+        "telegramApi": {
+          "id": "zSRCPzUsq8nGk1nN",
+          "name": "מבשב דפדפן"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## ⚙️ Free Parse — ארכיטקטורה\n\n**סכמה:** Telegram → n8n → Playwright MCP → Chrome ב-Steel\n\n**Steel** — `steel:3000` (API + תצוגה חיה `/ui`)\n**Playwright MCP** — `http://steel:8931/mcp` (sidecar, CDP בתוך steel :9222)\n**Scrape (קריאה/צילום מסך)** — `steel:3000/v1/scrape`\n\n**המוח:** Kimi K2.6 (עיקרי) + OpenAI gpt-4o-mini (fallback) · **זיכרון:** session = chatId\n\n⚠️ הכל מקומי (Mac/Windows), גם n8n ב-Docker. Telegram webhook עובר דרך Cloudflare Tunnel. steel ו-playwright — ידניים (לא דרך compose). אחרי כל ריסטארט של steel → סקריפט `restart-agent` (מקים מחדש את playwright).",
+        "height": 396,
+        "width": 760,
+        "color": 4
+      },
+      "id": "012faed9-d3c9-4281-8c68-33779ff698bf",
+      "name": "Настройка",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -800,
+        672
+      ]
+    },
+    {
+      "parameters": {
+        "content": "### 🤖 סוכן AI — הולך בעצמו באתרים\nקליקים, טפסים, גלילה, איסוף נתונים. התשובות למשתמש — בעברית בלבד. טריגר — המילה «סוכן» בהתחלה. יקר יותר בטוקנים, אבל אוניברסלי.\n👁 תצוגה חיה: http://localhost:3000/ui\nקאפצ'ה: פתור ב-/ui ביד → כתוב «סוכן תמשיך»",
+        "height": 208,
+        "width": 620,
+        "color": 3
+      },
+      "id": "4747b9eb-bc1d-46d7-99f8-29aaa4c5a2a0",
+      "name": "Ветка агента",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        848,
+        464
+      ]
+    },
+    {
+      "parameters": {
+        "content": "### 🔎 פרסר בלי AI — פקודות:\n▪️ **צילום מסך** <url או שאילתה> → תמונה של הדף לצ'אט\n▪️ **מחיר** / **מחירים** <url> → כל המחירים בדף (כמות + טווח)\n▪️ **תקציר** <שאילתה> → 3 קישורים מובילים, נכנס לכל אחד, תמצית\n▪️ כל טקסט אחר → 5 קישורים מובילים מהחיפוש (מילות מפתח!)\nהכל בלי LLM — מהיר וחינמי. מנוע החיפוש — Bing (לא Яндекс).",
+        "height": 240,
+        "width": 620,
+        "color": 5
+      },
+      "id": "a67d7fc2-e6e5-4cf4-ad70-2883b1e46dce",
+      "name": "Ветка парсера",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        896,
+        1456
+      ]
+    },
+    {
+      "parameters": {
+        "endpointUrl": "http://steel:8787/mcp",
+        "options": {
+          "timeout": 120000
+        }
+      },
+      "id": "b78b5a4d-5ce5-4270-b502-253870eb3e45",
+      "name": "Браузер (Steel MCP)",
+      "type": "@n8n/n8n-nodes-langchain.mcpClientTool",
+      "typeVersion": 1.4,
+      "position": [
+        1632,
+        1008
+      ],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "description": "טוען דף אינטרנט דרך Steel /v1/scrape (markdown, title). ארגומנט חובה url — כתובת מלאה של הדף (https://...).",
+        "source": "parameter",
+        "workflowJson": "{\n  \"nodes\": [\n    {\n      \"id\": \"trigger\",\n      \"name\": \"Execute Workflow Trigger\",\n      \"type\": \"n8n-nodes-base.executeWorkflowTrigger\",\n      \"typeVersion\": 1.2,\n      \"position\": [\n        0,\n        0\n      ],\n      \"parameters\": {\n        \"inputSource\": \"passthrough\"\n      }\n    },\n    {\n      \"id\": \"normalize\",\n      \"name\": \"Normalize URL\",\n      \"type\": \"n8n-nodes-base.code\",\n      \"typeVersion\": 2,\n      \"position\": [\n        200,\n        0\n      ],\n      \"parameters\": {\n        \"jsCode\": \"function pickUrl(v) {\\n  if (!v) return '';\\n  if (typeof v === 'string') {\\n    const s = v.trim();\\n    if (/^https?:\\\\/\\\\//i.test(s)) return s;\\n    try { return pickUrl(JSON.parse(s)); } catch { return ''; }\\n  }\\n  if (typeof v === 'object') {\\n    const raw = v.url ?? v.page_url ?? v.pageUrl ?? '';\\n    if (typeof raw === 'string' && /^https?:\\\\/\\\\//i.test(raw)) return raw.trim();\\n    if (v.query !== undefined) return pickUrl(v.query);\\n  }\\n  return '';\\n}\\nconst input = $input.first().json;\\nconst url = pickUrl(input);\\nif (!url) {\\n  throw new Error('צריך url — כתובת מלאה של הדף');\\n}\\nreturn [{ json: { url } }];\"\n      }\n    },\n    {\n      \"id\": \"http\",\n      \"name\": \"Steel Scrape\",\n      \"type\": \"n8n-nodes-base.httpRequest\",\n      \"typeVersion\": 4.2,\n      \"position\": [\n        420,\n        0\n      ],\n      \"onError\": \"continueRegularOutput\",\n      \"parameters\": {\n        \"method\": \"POST\",\n        \"url\": \"http://steel:3000/v1/scrape\",\n        \"sendBody\": true,\n        \"specifyBody\": \"json\",\n        \"jsonBody\": \"={{ { url: $json.url, format: ['markdown'], delay: 1500 } }}\",\n        \"options\": {\n          \"timeout\": 45000\n        }\n      }\n    },\n    {\n      \"id\": \"format\",\n      \"name\": \"Format Response\",\n      \"type\": \"n8n-nodes-base.code\",\n      \"typeVersion\": 2,\n      \"position\": [\n        640,\n        0\n      ],\n      \"parameters\": {\n        \"jsCode\": \"const scrape = $input.first().json;\\nif (scrape && scrape.error) {\\n  return [{ json: { response: 'לא הצלחתי לטעון את הדף (timeout/אנטי-בוט). נסה דרך אחרת או דף אחר. פרטים: ' + String(scrape.error).slice(0, 200) } }];\\n}\\nconst md = (scrape.content && scrape.content.markdown) || scrape.markdown || (typeof scrape.content === 'string' ? scrape.content : '');\\nconst meta = scrape.metadata || {};\\nconst title = meta.title || '';\\nconst url = meta.urlSource || $('Normalize URL').first().json.url || '';\\nconst links = Array.isArray(scrape.links) ? scrape.links.slice(0, 25).map(l => '- ' + (l.text || '') + ': ' + l.url).join('\\\\n') : '';\\nconst body = String(md || '').slice(0, 12000);\\nif (!body) {\\n  return [{ json: { response: 'הדף נטען אבל הטקסט ריק (כנראה תוכן שנוצר ע\\\"י סקריפטים). נסה את דפדפן Steel MCP. Title: ' + title } }];\\n}\\nreturn [{ json: { response: 'Title: ' + title + '\\\\nURL: ' + url + '\\\\n\\\\n' + body + (links ? '\\\\n\\\\nקישורים מהדף:\\\\n' + links : '') } }];\"\n      }\n    }\n  ],\n  \"connections\": {\n    \"Execute Workflow Trigger\": {\n      \"main\": [\n        [\n          {\n            \"node\": \"Normalize URL\",\n            \"type\": \"main\",\n            \"index\": 0\n          }\n        ]\n      ]\n    },\n    \"Normalize URL\": {\n      \"main\": [\n        [\n          {\n            \"node\": \"Steel Scrape\",\n            \"type\": \"main\",\n            \"index\": 0\n          }\n        ]\n      ]\n    },\n    \"Steel Scrape\": {\n      \"main\": [\n        [\n          {\n            \"node\": \"Format Response\",\n            \"type\": \"main\",\n            \"index\": 0\n          }\n        ]\n      ]\n    }\n  }\n}"
+      },
+      "id": "ff3fc475-88ba-4c63-ada8-8b317c4ceae3",
+      "name": "Steel: загрузка страницы",
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        2256,
+        1024
+      ]
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "cachedResultName": "gpt-4o-mini",
+          "mode": "list",
+          "value": "gpt-4o-mini"
+        },
+        "options": {}
+      },
+      "id": "a9e4b8fa-be95-40c0-bf6f-9d2cbb5b5964",
+      "name": "OpenAI Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        1328,
+        1184
+      ],
+      "maxTries": 3,
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "credentials": {
+        "openAiApi": {
+          "id": "1oufMJO6FQzcJUkD",
+          "name": "open ruter"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "endpointUrl": "http://steel:8931/mcp",
+        "options": {
+          "timeout": 120000
+        }
+      },
+      "id": "44b59e75-632c-4172-9b11-bb2314503b72",
+      "name": "Браузер (Playwright MCP → Steel)",
+      "type": "@n8n/n8n-nodes-langchain.mcpClientTool",
+      "typeVersion": 1.4,
+      "position": [
+        1808,
+        1008
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "r1",
+                    "leftValue": "={{ $json.message.text }}",
+                    "operator": {
+                      "operation": "startsWith",
+                      "type": "string"
+                    },
+                    "rightValue": "צילום מסך"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "צילום מסך"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "r2",
+                    "leftValue": "={{ $json.message.text }}",
+                    "operator": {
+                      "operation": "startsWith",
+                      "type": "string"
+                    },
+                    "rightValue": "מחיר"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "מחיר"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "r3",
+                    "leftValue": "={{ $json.message.text }}",
+                    "operator": {
+                      "operation": "startsWith",
+                      "type": "string"
+                    },
+                    "rightValue": "תקציר"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "תקציר"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "id": "0b745e57-64ef-4b9e-ae5e-b840c4d5f1d5",
+      "name": "Режим парсера",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        448,
+        1664
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "s1",
+              "name": "chatId",
+              "type": "string",
+              "value": "={{ $json.message.chat.id }}"
+            },
+            {
+              "id": "s2",
+              "name": "target",
+              "type": "string",
+              "value": "={{ ($json.message.text.match(/https?:\\/\\/[^\\s]+/i) || [''])[0] || ('https://www.bing.com/search?q=' + encodeURIComponent($json.message.text.replace(/^\\s*צילום מסך\\s*/i, ''))) }}"
+            },
+            {
+              "id": "s3",
+              "name": "label",
+              "type": "string",
+              "value": "={{ $json.message.text.replace(/^\\s*צילום מסך\\s*/i, '') }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "2098c979-bf90-43ec-9fb3-a1625eb433f2",
+      "name": "Скрин: параметры",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        912,
+        1728
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://steel:3000/v1/screenshot",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { url: $json.target, delay: 2000 } }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          },
+          "timeout": 60000
+        }
+      },
+      "id": "8db910ad-778a-426d-97a7-4f896198e0fa",
+      "name": "Steel: скриншот",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1152,
+        1728
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "sendPhoto",
+        "chatId": "={{ $('Скрин: параметры').item.json.chatId }}",
+        "binaryData": true,
+        "additionalFields": {
+          "caption": "={{ '📸 ' + $('Скрин: параметры').item.json.label }}"
+        }
+      },
+      "id": "6f8712e9-8f4c-4816-83e2-2f7ab85e401b",
+      "name": "Фото в Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1408,
+        1728
+      ],
+      "webhookId": "c7491ea3-66c9-415d-a258-776ea6e3813b",
+      "credentials": {
+        "telegramApi": {
+          "id": "zSRCPzUsq8nGk1nN",
+          "name": "מבשב דפדפן"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "d1",
+              "name": "chatId",
+              "type": "string",
+              "value": "={{ $json.message.chat.id }}"
+            },
+            {
+              "id": "d2",
+              "name": "query",
+              "type": "string",
+              "value": "={{ $json.message.text.replace(/^\\s*תקציר\\s*/i, '') }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "f51efae6-9e84-42e1-8516-1f4e29d55b27",
+      "name": "Дайджест: параметры",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        912,
+        1920
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://steel:3000/v1/scrape",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { url: 'https://www.bing.com/search?q=' + encodeURIComponent($json.query), format: ['markdown'], delay: 3000 } }}",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "f3153a6e-9b92-4d48-bf21-f938d517ab4f",
+      "name": "Steel: выдача (дайджест)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1152,
+        1920
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const STEEL = 'http://steel:3000/v1/scrape';\nconst q = $('Дайджест: параметры').first().json;\n\nasync function steelScrape(url, delay = 2500) {\n  return await this.helpers.httpRequest({\n    method: 'POST', url: STEEL, json: true,\n    body: { url, format: ['markdown'], delay },\n    timeout: 55000,\n  });\n}\n\nasync function fetchSerp(query) {\n  const input = $input.first().json;\n  if (!input.error && Array.isArray(input.links) && input.links.length > 3) return input;\n  const urls = [\n    `https://www.bing.com/search?q=${encodeURIComponent(query)}`,\n    `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`,\n  ];\n  let lastErr;\n  for (const u of urls) {\n    try {\n      const r = await steelScrape.call(this, u);\n      const links = Array.isArray(r.links) ? r.links : [];\n      const md = (r.content && r.content.markdown) || '';\n      if (links.length > 3 || md.length > 150) return r;\n    } catch (e) { lastErr = e; }\n  }\n  throw lastErr || new Error('SERP failed');\n}\n\nfunction decodeBing(u) {\n  try {\n    const m = u.match(/[?&]u=a1([^&]+)/);\n    if (!m) return null;\n    let b64 = m[1].replace(/-/g, '+').replace(/_/g, '/');\n    while (b64.length % 4) b64 += '=';\n    const dec = Buffer.from(b64, 'base64').toString('utf8');\n    return /^https?:\\/\\//i.test(dec) ? dec : null;\n  } catch (e) { return null; }\n}\n\nfunction decodeDdg(u) {\n  try {\n    const m = u.match(/[?&]uddg=([^&]+)/i);\n    if (m) return decodeURIComponent(m[1]);\n  } catch (e) {}\n  return null;\n}\n\nfunction resolveUrl(u) {\n  if (/bing\\.com\\/ck\\/a/i.test(u)) return decodeBing(u);\n  if (/duckduckgo\\.com\\/l\\//i.test(u)) return decodeDdg(u);\n  if (/^https?:\\/\\//i.test(u) && !/(bing|microsoft|msn|duckduckgo)\\.com/i.test(u)) return u;\n  return null;\n}\n\nfunction pickLinks(res) {\n  const links = Array.isArray(res.links) ? res.links : [];\n  const nav = /^(all|images|videos|maps|news|more|tools|next|\\d+)$/i;\n  const map = new Map();\n  for (const l of links) {\n    const real = resolveUrl(l.url || '');\n    if (!real || /(bing|microsoft|msn|duckduckgo|go\\.microsoft)\\.com/i.test(real)) continue;\n    let t = (l.text || '').replace(/https?:\\/\\/\\S+/g, '').trim();\n    if (nav.test(t) || t.length < 2) continue;\n    const prev = map.get(real) || '';\n    if (t.length > prev.length) map.set(real, t);\n  }\n  const picks = [];\n  for (const [url, title] of map) { picks.push({ url, title }); if (picks.length >= 3) break; }\n  return picks;\n}\n\nfunction snippetFromSerp(md, title) {\n  const text = String(md || '');\n  const esc = (title || '').replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&').slice(0, 60);\n  if (esc) {\n    const re = new RegExp('##\\\\s*' + esc + '[\\\\s\\\\S]{0,400}', 'i');\n    const m = text.match(re);\n    if (m) {\n      const line = m[0].replace(/^##\\s*[^\\n]+\\n?/, '').replace(/[#>*_`|!\\[\\]()]+/g, ' ').replace(/\\s+/g, ' ').trim();\n      if (line.length > 40) return line.slice(0, 300);\n    }\n  }\n  const para = text.split(/\\n{2,}/).map(s => s.replace(/[#>*_`|!\\[\\]()]+/g, ' ').replace(/\\s+/g, ' ').trim()).find(s => s.length > 90);\n  return para ? para.slice(0, 300) : '';\n}\n\nfunction cleanSummary(s) {\n  return String(s || '').replace(/!\\[[^\\]]*\\]\\([^)]+\\)/g, '').replace(/\\s+/g, ' ').trim();\n}\n\nlet serp;\ntry { serp = await fetchSerp.call(this, q.query); } catch (e) {\n  return [{ json: { chatId: q.chatId, text: '🗞 לא נמצא כלום לפי השאילתה (החיפוש לא זמין). נסה שוב בעוד דקה.' } }];\n}\n\nconst serpMd = (serp.content && serp.content.markdown) || '';\nconst picks = pickLinks(serp);\nif (!picks.length) {\n  return [{ json: { chatId: q.chatId, text: '🗞 לא נמצא כלום לפי השאילתה. שלח מילות מפתח, למשל: «תקציר חדשות n8n».' } }];\n}\n\nconst results = [];\nfor (const p of picks) {\n  let summary = '';\n  let realTitle = p.title;\n  try {\n    const r = await steelScrape.call(this, p.url, 1500);\n    const md = (r && r.content && r.content.markdown) || (r && r.markdown) || '';\n    const meta = (r && r.metadata) || {};\n    if (meta.title) realTitle = meta.title;\n    const para = String(md).split(/\\n{2,}/).map(s => s.replace(/[#>*_`|!\\[\\]()]+/g, ' ').replace(/\\s+/g, ' ').trim()).find(s => s.length > 90) || '';\n    summary = cleanSummary(para).slice(0, 300);\n  } catch (e) {\n    summary = '';\n  }\n  if (!summary) summary = cleanSummary(snippetFromSerp(serpMd, p.title)).slice(0, 300);\n  results.push({ title: realTitle, url: p.url, summary });\n}\n\nreturn [{ json: { chatId: q.chatId, query: q.query, results } }];"
+      },
+      "id": "e1f78895-0182-439e-b4f7-eb905640a16d",
+      "name": "Топ-3 ссылки",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1408,
+        1920
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "function esc(s) {\n  return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');\n}\n\nconst j = $input.first().json;\nif (j.text) {\n  return [{ json: { chatId: j.chatId, text: esc(j.text) } }];\n}\nconst results = Array.isArray(j.results) ? j.results : [];\nconst parts = results.map((r, i) => {\n  const head = (i + 1) + '. ' + esc(r.title || r.url);\n  const sum = r.summary ? esc(r.summary) : '';\n  const body = sum ? '\\n— ' + sum + (sum.length >= 280 ? '…' : '') : '\\n— (תיאור קצר מהחיפוש)';\n  return head + '\\n' + esc(r.url) + body;\n});\nconst text = '🗞 תקציר: ' + esc(j.query || '') + '\\n\\n' + parts.join('\\n\\n');\nreturn [{ json: { chatId: j.chatId, text: text.slice(0, 3900) } }];"
+      },
+      "id": "43a02bf0-7546-46de-b309-000bdf4edd8f",
+      "name": "Собрать дайджест",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1760,
+        1920
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "p1",
+              "name": "chatId",
+              "type": "string",
+              "value": "={{ $json.message.chat.id }}"
+            },
+            {
+              "id": "p2",
+              "name": "url",
+              "type": "string",
+              "value": "={{ ($json.message.text.match(/https?:\\/\\/[^\\s]+/i) || [''])[0] }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "0db572f2-556b-42f4-876c-240500a3a1dd",
+      "name": "Цена: параметры",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        912,
+        2096
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://steel:3000/v1/scrape",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { url: $json.url || 'https://example.com', format: ['markdown'], delay: 2500 } }}",
+        "options": {
+          "timeout": 45000
+        }
+      },
+      "id": "5cdff70b-b268-4b8f-b84e-5a5277f7132f",
+      "name": "Steel: страница товара",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1152,
+        2096
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const q = $('Цена: параметры').first().json;\nif (!q.url) {\n  return [{ json: { chatId: q.chatId, text: '💰 פורמט: מחיר <קישור למוצר או לקטלוג>' } }];\n}\nconst res = $input.first().json;\nif (res.error) {\n  return [{ json: { chatId: q.chatId, text: '💰 לא הצלחתי לפתוח את הדף (timeout/אנטי-בוט): ' + String(res.error).slice(0, 150) + '\\n' + q.url } }];\n}\nconst md = (res.content && res.content.markdown) || res.markdown || '';\nconst meta = res.metadata || {};\nconst title = meta.title || q.url;\n\n// מספרים + סימון מטבע (₪/$/€/₽ + קודים)\nconst re = /(?:(?<sym>[\\$€₽₪])\\s*)?(?<num>\\d[\\d\\s\\u00a0.,]{0,14}\\d|\\d)(?:\\s*(?<code>₪|NIS|ILS|\\$|USD|€|EUR|₽|руб\\.?|RUB|ש[\"״]?ח))?/gi;\nconst found = [];\nlet m;\nwhile ((m = re.exec(md)) !== null) {\n  const sym = (m.groups && m.groups.sym) || '';\n  const code = (m.groups && m.groups.code) || '';\n  if (!sym && !code) continue; // דורשים סימן מטבע כדי לא לתפוס מספרי טלפון וכו'\n  const digits = String(m.groups.num).replace(/[\\s\\u00a0]/g, '');\n  // פרסר נקודה/פסיק כאלפיות או עשרוני\n  let normalized = digits;\n  if (/,\\d{1,2}$/.test(normalized) && normalized.indexOf('.') === -1) {\n    normalized = normalized.replace(',', '.');\n  } else {\n    normalized = normalized.replace(/,/g, '');\n  }\n  const val = parseFloat(normalized);\n  if (isNaN(val) || val < 1 || val > 100000000) continue;\n  let currency = '₪';\n  const mark = (sym + ' ' + code).toUpperCase();\n  if (/\\$|USD/.test(mark)) currency = '$';\n  else if (/€|EUR/.test(mark)) currency = '€';\n  else if (/₽|RUB|РУБ/.test(mark)) currency = '₽';\n  else if (/₪|NIS|ILS|ש/.test(mark)) currency = '₪';\n  found.push({ val, currency });\n}\n\nconst byCur = new Map();\nfor (const f of found) {\n  if (!byCur.has(f.currency)) byCur.set(f.currency, new Set());\n  byCur.get(f.currency).add(f.val);\n}\n\nfunction fmt(n, cur) {\n  const rounded = Number.isInteger(n) ? n : Math.round(n * 100) / 100;\n  return rounded.toLocaleString('he-IL') + ' ' + cur;\n}\n\nlet text;\nif (!byCur.size) {\n  text = '💰 ' + title + '\\nלא מצאתי מחירים בדף (ייתכן שהם נטענים ע\"י סקריפטים או שהאתר חסום לבוטים).\\n' + q.url;\n} else {\n  const parts = [];\n  for (const [cur, set] of byCur) {\n    const uniq = [...set].sort((a, b) => a - b);\n    if (uniq.length === 1) {\n      parts.push('מחיר: ' + fmt(uniq[0], cur));\n    } else {\n      const show = uniq.slice(0, 40).map(v => fmt(v, cur));\n      parts.push('נמצאו מחירים (' + cur + '): ' + uniq.length + ' · טווח ' + fmt(uniq[0], cur) + ' — ' + fmt(uniq[uniq.length - 1], cur) + '\\n' + show.join(' · ') + (uniq.length > 40 ? ' …' : ''));\n    }\n  }\n  text = '💰 ' + title + '\\n' + parts.join('\\n\\n') + '\\n\\n' + q.url;\n}\nreturn [{ json: { chatId: q.chatId, text } }];\n"
+      },
+      "id": "37e9e36d-8be8-4f25-a7d4-c824ec591007",
+      "name": "Извлечь цену",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1408,
+        2096
+      ]
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Запрос (агент)').item.json.chatId }}",
+        "contextWindowLength": 10
+      },
+      "id": "5e00dcc5-aaaa-4bb4-9461-1c40f841c6f9",
+      "name": "Память агента",
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.4,
+      "position": [
+        976,
+        1104
+      ]
+    },
+    {
+      "parameters": {
+        "options": {
+          "temperature": 0.3,
+          "maxRetries": 2
+        }
+      },
+      "id": "1cf10d86-e5f6-4f09-8f2a-5a569a5b59c7",
+      "name": "Kimi K2.6",
+      "type": "@n8n/n8n-nodes-langchain.lmChatMoonshot",
+      "typeVersion": 1.1,
+      "position": [
+        656,
+        1104
+      ],
+      "credentials": {
+        "moonshotApi": {
+          "id": "yKh3OF4HkZ4zgviE",
+          "name": "Moonshot account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "e1",
+              "name": "text",
+              "type": "string",
+              "value": "={{ '🤖 Free Parse · סוכן · שגיאה\\n\\n' + (typeof $json.error === 'string' ? $json.error : ($json.error && $json.error.message ? $json.error.message : ($json.message || 'תקלה בסוכן'))) + ($json.error && $json.error.description ? '\\n\\n' + $json.error.description : '') + (String($json.error || $json.message || '').toLowerCase().includes('mcp') || String($json.error || '').includes('connect') ? '\\n\\n🔧 Playwright MCP לא זמין — הרץ restart-agent (Mac: bash ~/restart-agent.sh · Windows: powershell restart-agent.ps1)' : '') + '\\n\\n⏳ אם זה rate limit — חכה 20 שניות.\\n👁 http://localhost:3000/ui' }}"
+            },
+            {
+              "id": "e2",
+              "name": "chatId",
+              "type": "string",
+              "value": "={{ $('Запрос (агент)').item.json.chatId }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "de1e91bf-7eea-4853-9538-9a615a80273e",
+      "name": "Ошибка агента",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1872,
+        1472
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chatId }}",
+        "text": "={{ $json.text }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "id": "c96b6b4c-1a4b-4417-a6dd-da48e3de93d3",
+      "name": "Ошибка в Telegram (агент)",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2240,
+        1472
+      ],
+      "webhookId": "383a12ab-753f-4254-8dc0-cce3f5f32126",
+      "credentials": {
+        "telegramApi": {
+          "id": "zSRCPzUsq8nGk1nN",
+          "name": "מבשב דפדפן"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "### 🔄 מולטי-חיפוש + פענוח\nBing עוטף קישורים ב-redirect מסוג `ck/a` — הקוד מפענח אותם לכתובות אמיתיות (base64).\nאם Bing ריק → נפילה אוטומטית ל-DuckDuckGo. דה-דופ + ניקוי ניווט.",
+        "height": 244,
+        "width": 364,
+        "color": 6
+      },
+      "id": "59fb76b0-c059-4b12-af15-b05214ceccf1",
+      "name": "note_serp_multi",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        240,
+        2464
+      ]
+    },
+    {
+      "parameters": {
+        "content": "### 🗞 נכנס לכל אתר\nלא רק אוסף קישורים — פותח את 3 המובילים דרך Steel ומושך תמצית מכל דף (לולאת httpRequest בתוך הנוד).",
+        "height": 204,
+        "width": 364,
+        "color": 6
+      },
+      "id": "6f3020ed-2406-479b-aca6-b767b3204500",
+      "name": "note_digest_crawl",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        240,
+        2224
+      ]
+    },
+    {
+      "parameters": {
+        "content": "### 💰 כל המחירים בדף\nרג'קס תופס מספרים + ₪/$/€/₽ (וגם NIS/ILS/USD/EUR/RUB/ש״ח), מנקה מפרידים, דה-דופ, מיון לפי מטבע. אחד → מחיר; הרבה → כמות + טווח.",
+        "height": 194,
+        "width": 364,
+        "color": 6
+      },
+      "id": "ca235a9c-c4b3-4e63-9da6-be5062042a87",
+      "name": "note_price",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        240,
+        2752
+      ]
+    },
+    {
+      "parameters": {
+        "content": "### 📸 צילום מסך → קובץ\nSteel `/v1/screenshot` מחזיר PNG ישירות (responseFormat: file) → לטלגרם כתמונה.",
+        "height": 186,
+        "width": 360,
+        "color": 6
+      },
+      "id": "5b2eea78-a536-48ca-956d-9f7b72d8c223",
+      "name": "note_shot",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        240,
+        2000
+      ]
+    },
+    {
+      "parameters": {
+        "content": "### 📖 כלי קריאה\nהסוכן קורא לו כשצריך טקסט בלי קליקים. תת-workflow מובנה: Steel scrape → markdown. זול יותר מצילומי מסך.",
+        "height": 158,
+        "width": 632,
+        "color": 4
+      },
+      "id": "c45008ad-b157-4b55-abae-fe04a58a94a2",
+      "name": "note_scrape_tool",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2208,
+        800
+      ]
+    },
+    {
+      "parameters": {
+        "content": "### ⚠️ ענף שגיאות הסוכן\nתופס נפילת מודל/MCP ושולח תשובה ברורה לטלגרם (rate limit → לחכות; MCP נפל → סקריפט restart). בלעדיו הסוכן היה מת בשקט.",
+        "height": 178,
+        "width": 524,
+        "color": 2
+      },
+      "id": "c5729a31-e9e3-4e83-b5a6-6b5b83fe9f31",
+      "name": "note_error",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1856,
+        1264
+      ]
+    },
+    {
+      "parameters": {
+        "model": "nvidia/nemotron-nano-12b-v2-vl:free",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        768,
+        1312
+      ],
+      "id": "74eae648-c758-42a6-9a05-c3d0f76f1d32",
+      "name": "OpenRouter Chat Model",
+      "credentials": {
+        "openRouterApi": {
+          "id": "NJOgE5A60Bdbs1wr",
+          "name": "OpenRouter account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatNvidia",
+      "typeVersion": 1,
+      "position": [
+        608,
+        1312
+      ],
+      "id": "5c3d4f9c-da02-46a8-acad-bb18ee28b13d",
+      "name": "NVIDIA Nemotron Chat Model",
+      "credentials": {
+        "nvidiaApi": {
+          "id": "oKYUOa1CjuHi1TFw",
+          "name": "NVIDIA Nemotron account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Telegram Триггер": {
+      "main": [
+        [
+          {
+            "node": "Триггер-фраза?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Триггер-фраза?": {
+      "main": [
+        [
+          {
+            "node": "Запрос (агент)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Режим парсера",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Запрос (агент)": {
+      "main": [
+        [
+          {
+            "node": "ИИ-агент (Steel)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ИИ-агент (Steel)": {
+      "main": [
+        [
+          {
+            "node": "Сообщение (агент)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Ошибка агента",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Сообщение (агент)": {
+      "main": [
+        [
+          {
+            "node": "Ответ в Telegram (агент)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Запрос (парсер)": {
+      "main": [
+        [
+          {
+            "node": "Steel: выдача поиска",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Steel: выдача поиска": {
+      "main": [
+        [
+          {
+            "node": "Разобрать результаты",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Разобрать результаты": {
+      "main": [
+        [
+          {
+            "node": "Сообщение (парсер)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Сообщение (парсер)": {
+      "main": [
+        [
+          {
+            "node": "Ответ в Telegram (парсер)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Браузер (Steel MCP)": {
+      "ai_tool": [
+        [
+          {
+            "node": "ИИ-агент (Steel)",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Steel: загрузка страницы": {
+      "ai_tool": [
+        [
+          {
+            "node": "ИИ-агент (Steel)",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "ИИ-агент (Steel)",
+            "type": "ai_languageModel",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Браузер (Playwright MCP → Steel)": {
+      "ai_tool": [
+        [
+          {
+            "node": "ИИ-агент (Steel)",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Режим парсера": {
+      "main": [
+        [
+          {
+            "node": "Скрин: параметры",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Цена: параметры",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Дайджест: параметры",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Запрос (парсер)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Скрин: параметры": {
+      "main": [
+        [
+          {
+            "node": "Steel: скриншот",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Steel: скриншот": {
+      "main": [
+        [
+          {
+            "node": "Фото в Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Дайджест: параметры": {
+      "main": [
+        [
+          {
+            "node": "Steel: выдача (дайджест)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Steel: выдача (дайджест)": {
+      "main": [
+        [
+          {
+            "node": "Топ-3 ссылки",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Топ-3 ссылки": {
+      "main": [
+        [
+          {
+            "node": "Собрать дайджест",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Собрать дайджест": {
+      "main": [
+        [
+          {
+            "node": "Ответ в Telegram (парсер)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Цена: параметры": {
+      "main": [
+        [
+          {
+            "node": "Steel: страница товара",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Steel: страница товара": {
+      "main": [
+        [
+          {
+            "node": "Извлечь цену",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Извлечь цену": {
+      "main": [
+        [
+          {
+            "node": "Ответ в Telegram (парсер)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Память агента": {
+      "ai_memory": [
+        [
+          {
+            "node": "ИИ-агент (Steel)",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ошибка агента": {
+      "main": [
+        [
+          {
+            "node": "Ошибка в Telegram (агент)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Kimi K2.6": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "ИИ-агент (Steel)",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "b011257603d026c9a2a231f9e8d58345e1db08b50da95179f6ee9a3eb53c6a9d"
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
