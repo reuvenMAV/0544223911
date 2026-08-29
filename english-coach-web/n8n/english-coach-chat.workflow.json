@@ -1,0 +1,157 @@
+{
+  "name": "english-coach-chat",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "english-coach-chat",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json.headers['x-webhook-secret'] || $json.headers['X-Webhook-Secret']}}",
+              "value2": "={{$env.N8N_WEBHOOK_SECRET}}"
+            }
+          ]
+        }
+      },
+      "id": "check-secret",
+      "name": "Check Secret",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [220, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = items[0].json.body || items[0].json;\nconst required = ['learnerId','sessionId','messageType'];\nfor (const key of required) {\n  if (!body[key]) throw new Error('Missing ' + key);\n}\nreturn [{ json: body }];"
+      },
+      "id": "validate",
+      "name": "Validate Input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, -80]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Load progress from Supabase HTTP or n8n datastore.\n// Placeholder: pass empty progress and let the model bootstrap.\nreturn [{ json: { ...items[0].json, progress: { currentPhase: 'onboarding', onboardingStep: 0, profile: { interests: [], strongestLanguage: 'he' }, vocabulary: [], recentSessions: [] } } }];"
+      },
+      "id": "load-progress",
+      "name": "Load Progress",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [660, -80]
+    },
+    {
+      "parameters": {
+        "jsCode": "const progress = items[0].json.progress;\nconst system = `You are מורה אישי לאנגלית. Return ONLY JSON with replyText, choices[], phase, progressSaved, meta. Ask one question. Last choice must be other with opensTextInput true. Progress: ${JSON.stringify(progress)}`;\nreturn [{ json: { ...items[0].json, system } }];"
+      },
+      "id": "build-context",
+      "name": "Build Context",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [880, -80]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.xiaomimimo.com/v1/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"mimo-v2.5-pro\",\n  \"messages\": [\n    {\"role\": \"system\", \"content\": {{JSON.stringify($json.system)}}},\n    {\"role\": \"user\", \"content\": {{JSON.stringify(JSON.stringify($json))}}}\n  ],\n  \"temperature\": 0.4\n}",
+        "options": {}
+      },
+      "id": "mimo",
+      "name": "Xiaomi MiMo Chat",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1100, -80],
+      "notes": "Use credential Xiaomi MiMo (OpenAI-compatible). responsesApiEnabled must be false."
+    },
+    {
+      "parameters": {
+        "jsCode": "const content = items[0].json.choices?.[0]?.message?.content || items[0].json.output || '';\nconst match = String(content).match(/\\{[\\s\\S]*\\}/);\nif (!match) throw new Error('No JSON in model output');\nconst parsed = JSON.parse(match[0]);\nif (!parsed.replyText || !Array.isArray(parsed.choices)) throw new Error('Invalid schema');\nreturn [{ json: parsed }];"
+      },
+      "id": "parse",
+      "name": "Parse Structured Reply",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1320, -80]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Save progress checkpoint to Supabase here.\nreturn items;"
+      },
+      "id": "save",
+      "name": "Save Progress",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1540, -80]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{$json}}"
+      },
+      "id": "respond",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1760, -80]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { replyText: 'משהו השתבש. נסו שוב בעוד רגע.', choices: [], phase: 'onboarding', progressSaved: false, meta: {} } }}"
+      },
+      "id": "respond-error",
+      "name": "Respond Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [440, 120]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [[{ "node": "Check Secret", "type": "main", "index": 0 }]]
+    },
+    "Check Secret": {
+      "main": [
+        [{ "node": "Validate Input", "type": "main", "index": 0 }],
+        [{ "node": "Respond Error", "type": "main", "index": 0 }]
+      ]
+    },
+    "Validate Input": {
+      "main": [[{ "node": "Load Progress", "type": "main", "index": 0 }]]
+    },
+    "Load Progress": {
+      "main": [[{ "node": "Build Context", "type": "main", "index": 0 }]]
+    },
+    "Build Context": {
+      "main": [[{ "node": "Xiaomi MiMo Chat", "type": "main", "index": 0 }]]
+    },
+    "Xiaomi MiMo Chat": {
+      "main": [[{ "node": "Parse Structured Reply", "type": "main", "index": 0 }]]
+    },
+    "Parse Structured Reply": {
+      "main": [[{ "node": "Save Progress", "type": "main", "index": 0 }]]
+    },
+    "Save Progress": {
+      "main": [[{ "node": "Respond to Webhook", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

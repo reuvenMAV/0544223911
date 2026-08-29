@@ -1,0 +1,26 @@
+@import url("https://fonts.googleapis.com/css2?family=Assistant:wght@400;600;700&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #e8f2ee;
+  --foreground: #0f2f2a;
+  --accent: #0f3d38;
+  --sand: #f3e7d3;
+}
+
+body {
+  color: var(--foreground);
+  background:
+    radial-gradient(circle at 10% 10%, rgba(243, 231, 211, 0.9), transparent 40%),
+    radial-gradient(circle at 90% 0%, rgba(20, 90, 80, 0.18), transparent 35%),
+    linear-gradient(160deg, #e8f2ee 0%, #d7ebe3 45%, #f7f1e6 100%);
+  min-height: 100dvh;
+  font-family: "Assistant", "Segoe UI", sans-serif;
+}
+
+.font-display {
+  font-family: "Fraunces", Georgia, serif;
+}
