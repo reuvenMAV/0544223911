@@ -44,7 +44,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "={{$env.NEXT_APP_URL}}/api/telegram/handle",
+        "url": "={{$env.NEXT_APP_URL || 'https://mora-anglit.vercel.app'}}/api/telegram/handle",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [

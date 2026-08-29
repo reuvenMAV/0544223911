@@ -1,4 +1,9 @@
-# Telegram Bot — English Coach
+# Telegram Bot — English Coach (Shlish)
+
+**Bot display name:** Shlish  
+**Bot username:** `@ShlishBot`  
+**n8n workflow:** https://dev.n8n.mavash.net/workflow/aMINGA4gK6JD0Yvj  
+**Web app:** https://mora-anglit.vercel.app
 
 Telegram is an additional channel to the same coach. Teaching logic stays in `english-coach-chat` (n8n + MiMo). Progress is stored in Supabase.
 
@@ -28,7 +33,7 @@ Inline Keyboard reply → Telegram Bot API
 |---|---|---|
 | `TELEGRAM_BOT_TOKEN` | n8n credential **or** Vercel env (server only) | Required to send messages |
 | `TELEGRAM_WEBHOOK_SECRET` | n8n + Vercel | Optional; validates `X-Telegram-Webhook-Secret` |
-| `TELEGRAM_BOT_USERNAME` | Vercel (public name only) | e.g. `YourEnglishCoachBot` — no token |
+| `TELEGRAM_BOT_USERNAME` | Vercel (public name only) | `ShlishBot` — no token |
 | `N8N_WEBHOOK_URL` | Vercel | Points to `english-coach-chat` |
 | `N8N_WEBHOOK_SECRET` | Vercel + n8n | Shared webhook auth |
 | `SUPABASE_URL` | Vercel + n8n | Progress + telegram tables |
@@ -60,29 +65,36 @@ Tables: `telegram_learners`, `telegram_updates`, `telegram_link_codes`, `telegra
 
 ## 5. Webhook setup (HTTPS only)
 
-### Option A — Telegram → n8n (recommended)
+### Option A — Telegram → n8n (recommended for Shlish)
 
-1. Activate `english-coach-telegram` workflow.
-2. Copy the production webhook URL (e.g. `https://<n8n>/webhook/telegram-english-coach`).
-3. Register with Telegram:
+1. Open the workflow: https://dev.n8n.mavash.net/workflow/aMINGA4gK6JD0Yvj
+2. Ensure Telegram credential for **Shlish** (`@ShlishBot`) is attached.
+3. Activate the workflow (Production).
+4. Copy the production webhook URL (example shape):
+   `https://dev.n8n.mavash.net/webhook/<path-from-trigger>`
+5. Set n8n env / workflow vars:
+   - `NEXT_APP_URL=https://mora-anglit.vercel.app`
+   - `TELEGRAM_BOT_USERNAME=ShlishBot`
+   - `TELEGRAM_WEBHOOK_SECRET=<shared-secret>`
+6. Register webhook with Telegram (replace TOKEN and PATH; do not commit the token):
 
 ```bash
 curl -X POST "https://api.telegram.org/bot<TOKEN>/setWebhook" \
   -H "Content-Type: application/json" \
   -d '{
-    "url": "https://<your-n8n>/webhook/telegram-english-coach",
+    "url": "https://dev.n8n.mavash.net/webhook/<path-from-trigger>",
     "secret_token": "<TELEGRAM_WEBHOOK_SECRET>",
     "allowed_updates": ["message", "callback_query"]
   }'
 ```
 
-### Option B — Telegram → Vercel (uses shared TypeScript processor)
+### Option B — Telegram → Vercel (shared TypeScript processor)
 
 Point webhook to:
 
-`https://<your-domain>/api/telegram/handle`
+`https://mora-anglit.vercel.app/api/telegram/handle`
 
-Set `TELEGRAM_BOT_TOKEN` and `TELEGRAM_WEBHOOK_SECRET` on Vercel. Send header `X-Telegram-Webhook-Secret` on each request (Telegram `secret_token` is sent as `X-Telegram-Bot-Api-Secret-Token` — map in n8n if proxying).
+Set `TELEGRAM_BOT_TOKEN` and `TELEGRAM_WEBHOOK_SECRET` on Vercel. Telegram sends `secret_token` as header `X-Telegram-Bot-Api-Secret-Token` (also accepted as `X-Telegram-Webhook-Secret`).
 
 ## 6. Link web account to Telegram
 
