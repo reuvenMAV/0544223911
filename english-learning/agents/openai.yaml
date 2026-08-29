@@ -1,0 +1,4 @@
+interface:
+  display_name: "מורה אישי לאנגלית"
+  short_description: "אבחון מעמיק ומסלול אנגלית אישי מתמשך"
+  default_prompt: "Use $personalized-english-coach to start or continue my full personalized American-English learning path."
