@@ -1,9 +1,10 @@
 # Telegram Bot — English Coach (Shlish)
 
-**Bot display name:** Shlish  
-**Bot username:** `@ShlishBot`  
+**Bot display name:** @Shlish / Shlish  
+**Bot username:** `@ShlishSmarte_bot`  
 **n8n workflow:** https://dev.n8n.mavash.net/workflow/aMINGA4gK6JD0Yvj  
-**Web app:** https://mora-anglit.vercel.app
+**Web app:** https://mora-anglit.vercel.app  
+**Production webhook (Vercel):** `https://mora-anglit.vercel.app/api/telegram/handle`
 
 Telegram is an additional channel to the same coach. Teaching logic stays in `english-coach-chat` (n8n + MiMo). Progress is stored in Supabase.
 
@@ -68,13 +69,13 @@ Tables: `telegram_learners`, `telegram_updates`, `telegram_link_codes`, `telegra
 ### Option A — Telegram → n8n (recommended for Shlish)
 
 1. Open the workflow: https://dev.n8n.mavash.net/workflow/aMINGA4gK6JD0Yvj
-2. Ensure Telegram credential for **Shlish** (`@ShlishBot`) is attached.
+2. Ensure Telegram credential for **Shlish** (`@ShlishSmarte_bot`) is attached.
 3. Activate the workflow (Production).
 4. Copy the production webhook URL (example shape):
    `https://dev.n8n.mavash.net/webhook/<path-from-trigger>`
 5. Set n8n env / workflow vars:
    - `NEXT_APP_URL=https://mora-anglit.vercel.app`
-   - `TELEGRAM_BOT_USERNAME=ShlishBot`
+   - `TELEGRAM_BOT_USERNAME=ShlishSmarte_bot`
    - `TELEGRAM_WEBHOOK_SECRET=<shared-secret>`
 6. Register webhook with Telegram (replace TOKEN and PATH; do not commit the token):
 
