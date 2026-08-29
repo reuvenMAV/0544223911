@@ -1,0 +1,22 @@
+[
+  { "rank": 42, "word": "home", "pos": "n", "cefrHint": "A1", "topics": ["daily", "travel"] },
+  { "rank": 58, "word": "friend", "pos": "n", "cefrHint": "A1", "topics": ["social", "series"] },
+  { "rank": 73, "word": "food", "pos": "n", "cefrHint": "A1", "topics": ["food", "travel"] },
+  { "rank": 91, "word": "music", "pos": "n", "cefrHint": "A1", "topics": ["music"] },
+  { "rank": 110, "word": "game", "pos": "n", "cefrHint": "A1", "topics": ["games", "sport"] },
+  { "rank": 140, "word": "watch", "pos": "v", "cefrHint": "A1", "topics": ["series", "sport"] },
+  { "rank": 180, "word": "travel", "pos": "v", "cefrHint": "A2", "topics": ["travel"] },
+  { "rank": 210, "word": "movie", "pos": "n", "cefrHint": "A2", "topics": ["series", "films"] },
+  { "rank": 250, "word": "practice", "pos": "v", "cefrHint": "A2", "topics": ["learning", "sport"] },
+  { "rank": 320, "word": "choice", "pos": "n", "cefrHint": "A2", "topics": ["daily", "work"] },
+  { "rank": 410, "word": "improve", "pos": "v", "cefrHint": "B1", "topics": ["learning", "work"] },
+  { "rank": 480, "word": "challenge", "pos": "n", "cefrHint": "B1", "topics": ["sport", "work", "games"] },
+  { "rank": 560, "word": "recommend", "pos": "v", "cefrHint": "B1", "topics": ["series", "food", "travel"] },
+  { "rank": 640, "word": "confident", "pos": "j", "cefrHint": "B1", "topics": ["learning", "work"] },
+  { "rank": 720, "word": "schedule", "pos": "n", "cefrHint": "B1", "topics": ["work", "travel"] },
+  { "rank": 850, "word": "episode", "pos": "n", "cefrHint": "B1", "topics": ["series"] },
+  { "rank": 980, "word": "performance", "pos": "n", "cefrHint": "B2", "topics": ["music", "sport", "work"] },
+  { "rank": 1100, "word": "negotiate", "pos": "v", "cefrHint": "B2", "topics": ["work"] },
+  { "rank": 1250, "word": "atmosphere", "pos": "n", "cefrHint": "B2", "topics": ["travel", "food", "music"] },
+  { "rank": 1400, "word": "strategy", "pos": "n", "cefrHint": "B2", "topics": ["games", "work", "sport"] }
+]

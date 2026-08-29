@@ -1,0 +1,119 @@
+{
+  "name": "english-coach-telegram",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "telegram-english-coach",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "tg-webhook",
+      "name": "Telegram Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json.headers['x-telegram-bot-api-secret-token'] || $json.headers['x-telegram-webhook-secret'] || ''}}",
+              "value2": "={{$env.TELEGRAM_WEBHOOK_SECRET}}"
+            }
+          ]
+        }
+      },
+      "id": "tg-check-secret",
+      "name": "Check Webhook Secret",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [220, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Normalize Telegram update → internal coach payload.\n// Full logic mirror: src/lib/telegram/processor.ts\nconst update = items[0].json.body || items[0].json;\nif (!update.update_id) throw new Error('Missing update_id');\n\nconst fromId = update.message?.from?.id || update.callback_query?.from?.id;\nconst chatId = update.message?.chat?.id || update.callback_query?.message?.chat?.id;\nif (!fromId || !chatId) throw new Error('Missing telegram identity');\n\nreturn [{ json: { update, fromId, chatId, botId: $env.TELEGRAM_BOT_USERNAME || 'english-coach' } }];"
+      },
+      "id": "tg-normalize",
+      "name": "Normalize Telegram Update",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, -80]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.NEXT_APP_URL || 'https://mora-anglit.vercel.app'}}/api/telegram/handle",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "X-Telegram-Webhook-Secret",
+              "value": "={{$env.TELEGRAM_WEBHOOK_SECRET}}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.update }}",
+        "options": {}
+      },
+      "id": "tg-handle",
+      "name": "Process via Next.js Handler",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [660, -80],
+      "notes": "Uses shared TypeScript processor + english-coach-chat via COACH_BACKEND=n8n. Set NEXT_APP_URL to your Vercel domain."
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { ok: true } }}"
+      },
+      "id": "tg-respond-ok",
+      "name": "Respond OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [880, -80]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { ok: false, error: 'forbidden' } }}",
+        "options": {
+          "responseCode": 403
+        }
+      },
+      "id": "tg-respond-forbidden",
+      "name": "Respond Forbidden",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [440, 120]
+    }
+  ],
+  "connections": {
+    "Telegram Webhook": {
+      "main": [[{ "node": "Check Webhook Secret", "type": "main", "index": 0 }]]
+    },
+    "Check Webhook Secret": {
+      "main": [
+        [{ "node": "Normalize Telegram Update", "type": "main", "index": 0 }],
+        [{ "node": "Respond Forbidden", "type": "main", "index": 0 }]
+      ]
+    },
+    "Normalize Telegram Update": {
+      "main": [[{ "node": "Process via Next.js Handler", "type": "main", "index": 0 }]]
+    },
+    "Process via Next.js Handler": {
+      "main": [[{ "node": "Respond OK", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
