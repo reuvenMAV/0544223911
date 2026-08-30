@@ -1,6 +1,8 @@
 {
+  "id": "YaelBookLifeCycle01",
   "name": "Yael Mavashev — תורים",
   "active": false,
+  "versionId": "yael-booking-lifecycle-v1",
   "nodes": [
     {
       "parameters": {

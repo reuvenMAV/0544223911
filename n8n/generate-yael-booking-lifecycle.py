@@ -837,8 +837,10 @@ connections = {
 }
 
 workflow = {
+    "id": "YaelBookLifeCycle01",
     "name": "Yael Mavashev — תורים",
     "active": False,
+    "versionId": "yael-booking-lifecycle-v1",
     "nodes": nodes,
     "connections": connections,
     "pinData": {},

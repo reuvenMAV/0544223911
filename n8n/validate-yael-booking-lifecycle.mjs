@@ -13,6 +13,7 @@ function assert(cond, message) {
 }
 
 assert(workflow.name === "Yael Mavashev — תורים", `unexpected name: ${workflow.name}`);
+assert(workflow.id === "YaelBookLifeCycle01", `unexpected id: ${workflow.id}`);
 assert(workflow.active === false, "workflow must stay inactive");
 assert(!raw.includes("1eBm_9r1tPe5Jj6F8SmFGecvlYDsDRcxnUoRgMoDg6sU"), "Haya sheet id leaked");
 assert(!raw.includes("csdDb9xcveSmLOkV"), "Haya Google Sheets credential leaked");

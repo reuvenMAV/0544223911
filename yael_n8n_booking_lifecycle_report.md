@@ -46,6 +46,17 @@ App WhatsApp/email in `server/notifications.ts` stays `enabled: false`. This n8n
 4. Add an approved Yael Google review URL (do not invent).
 5. Do **not** publish until those are confirmed. Do not execute the workflow against real customers.
 
+## Oracle apply (this run)
+
+- Migration `0002_yael_n8n_lifecycle` applied. Tables `yael_n8n_lifecycle` and `yael_n8n_customers` exist in schema `yael`.
+- `YAEL_N8N_TOKEN` added to `/home/ubuntu/yael/secrets/yael.env` (mode 600, not printed) and as n8n variable `YAEL_N8N_TOKEN` (length 64).
+- `yael.service` rebuilt and restarted. `notifications.ts` still `enabled: false`.
+- `GET /api/n8n/appointments` → 401 without token; 200 `{"appointments":[]}` with token.
+- Vitest: 21 passed (includes 5 new lifecycle helper tests).
+- `SMOKE_BASE_URL=https://yael.mavash.net pnpm smoke` passed, including `n8n appointments require token`.
+- n8n-newsite Personal workflow `Yael Mavashev — תורים` id `YaelBookLifeCycle01` imported with **active=false**. No webhook row registered (inactive). Haya archive workflow remains inactive and was not edited.
+- Isolation curl: `booking.mavash.net`, `newsite.mavash.net`, `n8n.mavash.net`, `yael.mavash.net` all 200.
+
 ## Isolation
 
 - Haya/Forever workflows, `booking.mavash.net`, OpenReply, Evolution, Chatwoot, Portainer: not edited.
