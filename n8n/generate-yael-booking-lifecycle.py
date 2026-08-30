@@ -6,8 +6,8 @@ import json
 from pathlib import Path
 
 API = "https://yael.mavash.net/api/n8n"
-GREEN = {"greenApiAuthApi": {"id": "VBzwcT8zWZQJypE4", "name": "Green-API 140"}}
-GREEN_NODE = "@green-api/n8n-nodes-whatsapp-greenapi.greenapi"
+GREEN = {"greenApi": {"id": "Yt6E9F43cXq2ctMX", "name": "Green account"}}
+GREEN_NODE = "n8n-nodes-whatsapp-green-api.greenApi"
 TOKEN_HEADER = {
     "parameters": {
         "parameters": [
@@ -736,7 +736,7 @@ def http_customer():
 
 
 def wa(chat, message):
-    return {"chatId": chat, "message": message, "typingTime": 0}
+    return {"chatId": chat, "message": message, "options": {}}
 
 
 nodes = [

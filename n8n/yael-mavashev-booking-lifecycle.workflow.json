@@ -115,20 +115,20 @@
       "parameters": {
         "chatId": "={{ $json.ownerChatId }}",
         "message": "={{ $json.ownerMsg }}",
-        "typingTime": 0
+        "options": {}
       },
       "id": "yael-new-wa1",
       "name": "4️⃣ WhatsApp: ליעל - פרטי תור",
-      "type": "@green-api/n8n-nodes-whatsapp-greenapi.greenapi",
+      "type": "n8n-nodes-whatsapp-green-api.greenApi",
       "typeVersion": 1,
       "position": [
         464,
         -384
       ],
       "credentials": {
-        "greenApiAuthApi": {
-          "id": "VBzwcT8zWZQJypE4",
-          "name": "Green-API 140"
+        "greenApi": {
+          "id": "Yt6E9F43cXq2ctMX",
+          "name": "Green account"
         }
       }
     },
@@ -136,20 +136,20 @@
       "parameters": {
         "chatId": "={{ $('2️⃣ Code: Normalize Messages').item.json.ownerChatId }}",
         "message": "={{ $('2️⃣ Code: Normalize Messages').item.json.customerForwardMsg }}",
-        "typingTime": 0
+        "options": {}
       },
       "id": "yael-new-wa2",
       "name": "5️⃣ WhatsApp: ליעל - הודעה להעברה ללקוחה",
-      "type": "@green-api/n8n-nodes-whatsapp-greenapi.greenapi",
+      "type": "n8n-nodes-whatsapp-green-api.greenApi",
       "typeVersion": 1,
       "position": [
         688,
         -384
       ],
       "credentials": {
-        "greenApiAuthApi": {
-          "id": "VBzwcT8zWZQJypE4",
-          "name": "Green-API 140"
+        "greenApi": {
+          "id": "Yt6E9F43cXq2ctMX",
+          "name": "Green account"
         }
       }
     },
@@ -254,20 +254,20 @@
       "parameters": {
         "chatId": "={{ $json.ownerChatId }}",
         "message": "={{ $json.ownerReminderMsg }}",
-        "typingTime": 0
+        "options": {}
       },
       "id": "yael-rem-wa1",
       "name": "🟠3️⃣ WhatsApp: ליעל - פרטי תזכורת",
-      "type": "@green-api/n8n-nodes-whatsapp-greenapi.greenapi",
+      "type": "n8n-nodes-whatsapp-green-api.greenApi",
       "typeVersion": 1,
       "position": [
         240,
         -160
       ],
       "credentials": {
-        "greenApiAuthApi": {
-          "id": "VBzwcT8zWZQJypE4",
-          "name": "Green-API 140"
+        "greenApi": {
+          "id": "Yt6E9F43cXq2ctMX",
+          "name": "Green account"
         }
       }
     },
@@ -275,20 +275,20 @@
       "parameters": {
         "chatId": "={{ $('🟠2️⃣ Code: סינון + שתי הודעות ליעל').item.json.ownerChatId }}",
         "message": "={{ $('🟠2️⃣ Code: סינון + שתי הודעות ליעל').item.json.customerForwardMsg }}",
-        "typingTime": 0
+        "options": {}
       },
       "id": "yael-rem-wa2",
       "name": "🟠4️⃣ WhatsApp: ליעל - הודעה להעברה ללקוחה",
-      "type": "@green-api/n8n-nodes-whatsapp-greenapi.greenapi",
+      "type": "n8n-nodes-whatsapp-green-api.greenApi",
       "typeVersion": 1,
       "position": [
         464,
         -160
       ],
       "credentials": {
-        "greenApiAuthApi": {
-          "id": "VBzwcT8zWZQJypE4",
-          "name": "Green-API 140"
+        "greenApi": {
+          "id": "Yt6E9F43cXq2ctMX",
+          "name": "Green account"
         }
       }
     },
@@ -393,20 +393,20 @@
       "parameters": {
         "chatId": "={{ $json.ownerChatId }}",
         "message": "={{ $json.ownerDoneMsg }}",
-        "typingTime": 0
+        "options": {}
       },
       "id": "yael-sur-wa1",
       "name": "3️⃣3️⃣ WhatsApp: ליעל - טיפול בוצע",
-      "type": "@green-api/n8n-nodes-whatsapp-greenapi.greenapi",
+      "type": "n8n-nodes-whatsapp-green-api.greenApi",
       "typeVersion": 1,
       "position": [
         240,
         64
       ],
       "credentials": {
-        "greenApiAuthApi": {
-          "id": "VBzwcT8zWZQJypE4",
-          "name": "Green-API 140"
+        "greenApi": {
+          "id": "Yt6E9F43cXq2ctMX",
+          "name": "Green account"
         }
       }
     },
@@ -414,20 +414,20 @@
       "parameters": {
         "chatId": "={{ $('3️⃣2️⃣ Code: מציאת טיפולים שבוצעו').item.json.ownerChatId }}",
         "message": "={{ $('3️⃣2️⃣ Code: מציאת טיפולים שבוצעו').item.json.filloutForwardMsg }}",
-        "typingTime": 0
+        "options": {}
       },
       "id": "yael-sur-wa2",
       "name": "3️⃣4️⃣ WhatsApp: ליעל - סקר להעברה",
-      "type": "@green-api/n8n-nodes-whatsapp-greenapi.greenapi",
+      "type": "n8n-nodes-whatsapp-green-api.greenApi",
       "typeVersion": 1,
       "position": [
         464,
         64
       ],
       "credentials": {
-        "greenApiAuthApi": {
-          "id": "VBzwcT8zWZQJypE4",
-          "name": "Green-API 140"
+        "greenApi": {
+          "id": "Yt6E9F43cXq2ctMX",
+          "name": "Green account"
         }
       }
     },
@@ -513,20 +513,20 @@
       "parameters": {
         "chatId": "={{ $json.ownerChatId }}",
         "message": "={{ $json.highRatingOwnerMsg }}",
-        "typingTime": 0
+        "options": {}
       },
       "id": "yael-fb-hi",
       "name": "3️⃣ WhatsApp: ליעל - דירוג גבוה",
-      "type": "@green-api/n8n-nodes-whatsapp-greenapi.greenapi",
+      "type": "n8n-nodes-whatsapp-green-api.greenApi",
       "typeVersion": 1,
       "position": [
         240,
         288
       ],
       "credentials": {
-        "greenApiAuthApi": {
-          "id": "VBzwcT8zWZQJypE4",
-          "name": "Green-API 140"
+        "greenApi": {
+          "id": "Yt6E9F43cXq2ctMX",
+          "name": "Green account"
         }
       }
     },
@@ -534,20 +534,20 @@
       "parameters": {
         "chatId": "={{ $('3️⃣ Code: Parse Fillout Rating').item.json.ownerChatId }}",
         "message": "={{ $('3️⃣ Code: Parse Fillout Rating').item.json.googleForwardMsg }}",
-        "typingTime": 0
+        "options": {}
       },
       "id": "yael-fb-g",
       "name": "3️⃣ WhatsApp: ליעל - Google להעברה",
-      "type": "@green-api/n8n-nodes-whatsapp-greenapi.greenapi",
+      "type": "n8n-nodes-whatsapp-green-api.greenApi",
       "typeVersion": 1,
       "position": [
         464,
         288
       ],
       "credentials": {
-        "greenApiAuthApi": {
-          "id": "VBzwcT8zWZQJypE4",
-          "name": "Green-API 140"
+        "greenApi": {
+          "id": "Yt6E9F43cXq2ctMX",
+          "name": "Green account"
         }
       }
     },
@@ -582,20 +582,20 @@
       "parameters": {
         "chatId": "={{ $json.ownerChatId }}",
         "message": "={{ $json.lowRatingOwnerMsg }}",
-        "typingTime": 0
+        "options": {}
       },
       "id": "yael-fb-lo",
       "name": "3️⃣ WhatsApp: ליעל - דירוג נמוך",
-      "type": "@green-api/n8n-nodes-whatsapp-greenapi.greenapi",
+      "type": "n8n-nodes-whatsapp-green-api.greenApi",
       "typeVersion": 1,
       "position": [
         240,
         480
       ],
       "credentials": {
-        "greenApiAuthApi": {
-          "id": "VBzwcT8zWZQJypE4",
-          "name": "Green-API 140"
+        "greenApi": {
+          "id": "Yt6E9F43cXq2ctMX",
+          "name": "Green account"
         }
       }
     },

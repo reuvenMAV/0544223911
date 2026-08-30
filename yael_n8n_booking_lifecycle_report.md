@@ -8,7 +8,7 @@ The Haya/Forever n8n JSON was **not** imported, activated, or pointed at Haya’
 |---|---|
 | Google Sheet `Smart Booking — תורים` | Postgres `yael_booking_appointments` via `https://yael.mavash.net/api/n8n/*` |
 | Credential `Google Sheets חיה` | No Sheets nodes |
-| Green **642** | Official Green-API node + credential **Green-API 140** (community `Green biz140` returns 401) |
+| Green **642** | **Green account** (`Yt6E9F43cXq2ctMX`) on every Yael WhatsApp node |
 | שלהבת חיה / הנביאים 45 / Haya Waze / Haya Google review | Yael Mavashev, אשקלון · נווה הדרים, Yael Waze search, **no invented Google review URL** |
 | Owner labels `לחיה` | `ליעל` |
 | Webhook `review-rating1` | `yael-review-rating` |
