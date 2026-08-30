@@ -1,5 +1,5 @@
 import type { Express, Request, Response } from "express";
-import { listN8nAppointments, n8nTokenConfigured, n8nTokenMatches, updateN8nLifecycle, upsertN8nCustomer } from "./n8nLifecycle";
+import { createSurvey, listN8nAppointments, listN8nCustomers, listSurveys, n8nTokenConfigured, n8nTokenMatches, updateN8nLifecycle, upsertN8nCustomer } from "./n8nLifecycle";
 
 function unauthorized(res: Response) {
   res.status(401).json({ error: "unauthorized" });
@@ -72,6 +72,48 @@ export function registerYaelN8nRoutes(app: Express) {
       res.json(result);
     } catch {
       res.status(503).json({ error: "customers_unavailable" });
+    }
+  });
+
+  app.get("/api/n8n/customers", async (req, res) => {
+    if (!guard(req, res)) return;
+    try {
+      res.json({ customers: await listN8nCustomers() });
+    } catch {
+      res.status(503).json({ error: "customers_unavailable" });
+    }
+  });
+
+  app.get("/api/n8n/surveys", async (req, res) => {
+    if (!guard(req, res)) return;
+    try {
+      res.json({ surveys: await listSurveys() });
+    } catch {
+      res.status(503).json({ error: "surveys_unavailable" });
+    }
+  });
+
+  app.post("/api/survey", async (req, res) => {
+    const name = String(req.body?.name || "").trim();
+    const phone = String(req.body?.phone || "").trim();
+    const feedback = String(req.body?.feedback || "").trim();
+    const rating = Number(req.body?.rating);
+    const appointmentId = Number(req.body?.id || req.body?.appointmentId);
+    if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
+      res.status(400).json({ error: "invalid_rating" });
+      return;
+    }
+    try {
+      const row = await createSurvey({
+        appointmentId: Number.isInteger(appointmentId) && appointmentId > 0 ? appointmentId : undefined,
+        name,
+        phone,
+        rating,
+        feedback,
+      });
+      res.json({ ok: true, id: row?.id, rating });
+    } catch {
+      res.status(503).json({ error: "survey_unavailable" });
     }
   });
 }

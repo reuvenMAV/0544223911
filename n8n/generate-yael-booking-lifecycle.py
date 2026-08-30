@@ -311,7 +311,7 @@ return out;
 SURVEY_FILTER = r"""
 const OWNER_CHAT_ID = '972548060140@c.us';
 const SALON_NAME = 'Yael Mavashev — פדיקור ומניקור';
-const FILLOUT_FORM_URL = '';
+const FILLOUT_FORM_URL = 'https://yael.mavash.net/survey';
 
 function clean(value) {
   return String(value == null ? '' : value).replace(/\s+/g, ' ').trim();

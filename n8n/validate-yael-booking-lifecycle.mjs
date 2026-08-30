@@ -33,6 +33,7 @@ assert(raw.includes("972548060140@c.us"), "Yael owner chat id missing");
 assert(!raw.includes("972544223911@c.us"), "Reuven owner chat id must not remain");
 assert(raw.includes("Green biz140"), "Yael Green credential missing");
 assert(raw.includes("Padox2sWCSv4sRZ5"), "Yael Green credential id missing");
+assert(raw.includes("https://yael.mavash.net/survey"), "Yael survey URL missing");
 assert(raw.includes("yael-review-rating"), "Yael Fillout webhook path missing");
 assert(!raw.includes("review-rating1"), "Haya Fillout webhook path leaked");
 assert(raw.includes("$vars.YAEL_N8N_TOKEN"), "n8n token variable missing");

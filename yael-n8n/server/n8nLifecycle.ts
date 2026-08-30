@@ -1,6 +1,6 @@
 import { timingSafeEqual } from "node:crypto";
 import { asc, eq, sql } from "drizzle-orm";
-import { appointments, n8nCustomers, n8nLifecycle, services } from "../drizzle/schema";
+import { appointments, n8nCustomers, n8nLifecycle, n8nSurveys, services } from "../drizzle/schema";
 import { getDb } from "./db";
 
 export const STATUS_HE: Record<string, string> = {
@@ -173,4 +173,38 @@ export async function upsertN8nCustomer(input: {
       },
     });
   return { phone: row.phone, name: row.name };
+}
+
+export async function listN8nCustomers() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(n8nCustomers).orderBy(asc(n8nCustomers.name));
+}
+
+export async function createSurvey(input: {
+  appointmentId?: number;
+  name: string;
+  phone: string;
+  rating: number;
+  feedback: string;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Database unavailable");
+  const [row] = await db
+    .insert(n8nSurveys)
+    .values({
+      appointmentId: input.appointmentId,
+      name: input.name,
+      phone: input.phone,
+      rating: input.rating,
+      feedback: input.feedback,
+    })
+    .returning();
+  return row;
+}
+
+export async function listSurveys() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(n8nSurveys).orderBy(asc(n8nSurveys.createdAt));
 }

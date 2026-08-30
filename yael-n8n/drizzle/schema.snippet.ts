@@ -6,6 +6,16 @@ export const n8nLifecycle = pgTable("yael_n8n_lifecycle", {
   updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" }).defaultNow().notNull(),
 });
 
+export const n8nSurveys = pgTable("yael_n8n_surveys", {
+  id: serial("id").primaryKey(),
+  appointmentId: integer("appointment_id"),
+  name: varchar("name", { length: 160 }).default("").notNull(),
+  phone: varchar("phone", { length: 30 }).default("").notNull(),
+  rating: integer("rating").notNull(),
+  feedback: text("feedback").default("").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).defaultNow().notNull(),
+});
+
 export const n8nCustomers = pgTable("yael_n8n_customers", {
   phone: varchar("phone", { length: 30 }).primaryKey(),
   name: varchar("name", { length: 160 }).notNull(),
