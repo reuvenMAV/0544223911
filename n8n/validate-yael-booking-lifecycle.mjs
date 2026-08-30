@@ -39,6 +39,8 @@ assert(raw.includes("https://yael.mavash.net/survey"), "Yael survey URL missing"
 assert(raw.includes("yael-review-rating"), "Yael Fillout webhook path missing");
 assert(!raw.includes("review-rating1"), "Haya Fillout webhook path leaked");
 assert(raw.includes("$vars.YAEL_N8N_TOKEN"), "n8n token variable missing");
+assert(raw.includes(".first().json.id"), "lifecycle HTTP nodes must read id via first()");
+assert(!raw.includes(".item.json.id"), "paired .item id lookup breaks after Green nodes");
 
 const nodeTypes = workflow.nodes.map((node) => node.type);
 assert(nodeTypes.includes("n8n-nodes-base.httpRequest"), "HTTP source nodes missing");

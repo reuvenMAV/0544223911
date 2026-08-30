@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { formatJerusalemDate, formatJerusalemTime, mapStatusHe, n8nTokenConfigured, n8nTokenMatches, resolveServiceName, toAppointmentRow } from "./n8nLifecycle";
+import { formatJerusalemDate, formatJerusalemTime, mapStatusHe, n8nTokenConfigured, n8nTokenMatches, parseAppointmentId, resolveServiceName, toAppointmentRow } from "./n8nLifecycle";
 
 const previousToken = process.env.YAEL_N8N_TOKEN;
 
@@ -9,6 +9,15 @@ afterEach(() => {
 });
 
 describe("Yael n8n lifecycle helpers", () => {
+  it("accepts numeric appointment ids from n8n JSON bodies", () => {
+    expect(parseAppointmentId(1)).toBe(1);
+    expect(parseAppointmentId("1")).toBe(1);
+    expect(parseAppointmentId(" 12 ")).toBe(12);
+    expect(parseAppointmentId("")).toBeNull();
+    expect(parseAppointmentId("={{ $json.id }}")).toBeNull();
+    expect(parseAppointmentId(0)).toBeNull();
+  });
+
   it("maps booking statuses to the Hebrew labels used by the workflow", () => {
     expect(mapStatusHe("pending")).toBe("ממתין");
     expect(mapStatusHe("confirmed")).toBe("מאושר");

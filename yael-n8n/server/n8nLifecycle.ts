@@ -29,6 +29,14 @@ export function mapStatusHe(status: string): string {
   return STATUS_HE[status] ?? status;
 }
 
+export function parseAppointmentId(raw: unknown): number | null {
+  if (typeof raw === "number" && Number.isInteger(raw) && raw >= 1) return raw;
+  const text = String(raw ?? "").trim();
+  if (!text || !/^\d+$/.test(text)) return null;
+  const id = Number(text);
+  return Number.isInteger(id) && id >= 1 ? id : null;
+}
+
 export function n8nTokenConfigured(): boolean {
   return Boolean(process.env.YAEL_N8N_TOKEN && process.env.YAEL_N8N_TOKEN.length >= 16);
 }

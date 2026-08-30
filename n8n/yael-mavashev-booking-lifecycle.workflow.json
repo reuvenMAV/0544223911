@@ -134,8 +134,8 @@
     },
     {
       "parameters": {
-        "chatId": "={{ $('2️⃣ Code: Normalize Messages').item.json.ownerChatId }}",
-        "message": "={{ $('2️⃣ Code: Normalize Messages').item.json.customerForwardMsg }}",
+        "chatId": "={{ $(\"2️⃣ Code: Normalize Messages\").first().json.ownerChatId }}",
+        "message": "={{ $(\"2️⃣ Code: Normalize Messages\").first().json.customerForwardMsg }}",
         "options": {}
       },
       "id": "yael-new-wa2",
@@ -168,7 +168,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "{\"id\": \"={{ $('2️⃣ Code: Normalize Messages').item.json.id }}\", \"auditLog\": \"sent\"}",
+        "jsonBody": "={{ JSON.stringify({ id: $(\"2️⃣ Code: Normalize Messages\").first().json.id, auditLog: \"sent\" }) }}",
         "options": {}
       },
       "id": "yael-new-mark",
@@ -273,8 +273,8 @@
     },
     {
       "parameters": {
-        "chatId": "={{ $('🟠2️⃣ Code: סינון + שתי הודעות ליעל').item.json.ownerChatId }}",
-        "message": "={{ $('🟠2️⃣ Code: סינון + שתי הודעות ליעל').item.json.customerForwardMsg }}",
+        "chatId": "={{ $(\"🟠2️⃣ Code: סינון + שתי הודעות ליעל\").first().json.ownerChatId }}",
+        "message": "={{ $(\"🟠2️⃣ Code: סינון + שתי הודעות ליעל\").first().json.customerForwardMsg }}",
         "options": {}
       },
       "id": "yael-rem-wa2",
@@ -307,7 +307,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "{\"id\": \"={{ $('🟠2️⃣ Code: סינון + שתי הודעות ליעל').item.json.id }}\", \"auditLog\": \"reminder_sent\"}",
+        "jsonBody": "={{ JSON.stringify({ id: $(\"🟠2️⃣ Code: סינון + שתי הודעות ליעל\").first().json.id, auditLog: \"reminder_sent\" }) }}",
         "options": {}
       },
       "id": "yael-rem-mark",
@@ -412,8 +412,8 @@
     },
     {
       "parameters": {
-        "chatId": "={{ $('3️⃣2️⃣ Code: מציאת טיפולים שבוצעו').item.json.ownerChatId }}",
-        "message": "={{ $('3️⃣2️⃣ Code: מציאת טיפולים שבוצעו').item.json.filloutForwardMsg }}",
+        "chatId": "={{ $(\"3️⃣2️⃣ Code: מציאת טיפולים שבוצעו\").first().json.ownerChatId }}",
+        "message": "={{ $(\"3️⃣2️⃣ Code: מציאת טיפולים שבוצעו\").first().json.filloutForwardMsg }}",
         "options": {}
       },
       "id": "yael-sur-wa2",
@@ -446,7 +446,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "{\"id\": \"={{ $('3️⃣2️⃣ Code: מציאת טיפולים שבוצעו').item.json.id }}\", \"reviewSent\": \"fillout_sent\"}",
+        "jsonBody": "={{ JSON.stringify({ id: $(\"3️⃣2️⃣ Code: מציאת טיפולים שבוצעו\").first().json.id, reviewSent: \"fillout_sent\" }) }}",
         "options": {}
       },
       "id": "yael-sur-mark",
@@ -532,8 +532,8 @@
     },
     {
       "parameters": {
-        "chatId": "={{ $('3️⃣ Code: Parse Fillout Rating').item.json.ownerChatId }}",
-        "message": "={{ $('3️⃣ Code: Parse Fillout Rating').item.json.googleForwardMsg }}",
+        "chatId": "={{ $(\"3️⃣ Code: Parse Fillout Rating\").first().json.ownerChatId }}",
+        "message": "={{ $(\"3️⃣ Code: Parse Fillout Rating\").first().json.googleForwardMsg }}",
         "options": {}
       },
       "id": "yael-fb-g",
@@ -566,7 +566,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "{\"id\": \"={{ $('3️⃣ Code: Parse Fillout Rating').item.json.id }}\", \"auditLog\": \"google_review_requested\"}",
+        "jsonBody": "={{ JSON.stringify({ id: $(\"3️⃣ Code: Parse Fillout Rating\").first().json.id, auditLog: \"google_review_requested\" }) }}",
         "options": {}
       },
       "id": "yael-fb-hi-mark",
@@ -614,7 +614,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "{\"id\": \"={{ $('3️⃣ Code: Parse Fillout Rating').item.json.id }}\", \"auditLog\": \"low_rating_received\"}",
+        "jsonBody": "={{ JSON.stringify({ id: $(\"3️⃣ Code: Parse Fillout Rating\").first().json.id, auditLog: \"low_rating_received\" }) }}",
         "options": {}
       },
       "id": "yael-fb-lo-mark",

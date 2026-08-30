@@ -41,7 +41,7 @@ App WhatsApp/email in `server/notifications.ts` stays `enabled: false`. This n8n
 
 ## Still open after Publish
 
-1. First real booking after the Green-API 140 switch should deliver to `054-806-0140`. Community credential `Green biz140` returned 401 and was replaced.
+1. First real booking after switching all Yael WhatsApp nodes to **Green account**.
 2. Add an approved Yael Google review URL (do not invent). `GOOGLE_REVIEW_LINK` is still empty.
 3. Native survey is `https://yael.mavash.net/survey`. The n8n rating webhook is `https://newsite.mavash.net/webhook/yael-review-rating` (Fillout-shaped payload). The public survey posts to `/api/survey`, not to that webhook.
 4. `YAEL_N8N_TOKEN` is already set on newsite and in `yael.env`.
@@ -72,7 +72,7 @@ App WhatsApp/email in `server/notifications.ts` stays `enabled: false`. This n8n
 
 - Appointment `#1` existed with `audit_log=created`, but `yael_booking_services` was empty. The public site books from an in-memory catalog, so the n8n join returned an empty `שירות` and `3️⃣ IF: Valid + New?` failed on `service isNotEmpty`.
 - Seeded the five catalog services. API now returns `שירות=פדיקור`. IF no longer requires service; normalize falls back to `טיפול`.
-- After the IF passed, community node `Green biz140` returned `401`. WhatsApp nodes now use official `@green-api/n8n-nodes-whatsapp-greenapi.greenapi` + `Green-API 140` (`VBzwcT8zWZQJypE4`), already shared to the same Personal project.
+- After the IF passed, community node `Green biz140` returned `401`. All nine WhatsApp nodes now use **Green account** (`Yt6E9F43cXq2ctMX`), already shared to the same Personal project.
 
 ## Isolation
 

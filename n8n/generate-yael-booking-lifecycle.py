@@ -695,8 +695,12 @@ def http_get():
     }
 
 
-def http_lifecycle(id_expr, extra):
-    body = {"id": id_expr, **extra}
+def first_json(source_node: str, field: str) -> str:
+    return f"$({json.dumps(source_node, ensure_ascii=False)}).first().json.{field}"
+
+
+def http_lifecycle(source_node: str, extra: dict[str, str]):
+    extra_js = ", ".join(f"{key}: {json.dumps(value)}" for key, value in extra.items())
     return {
         "method": "POST",
         "url": f"{API}/lifecycle",
@@ -704,7 +708,7 @@ def http_lifecycle(id_expr, extra):
         "headerParameters": TOKEN_HEADER["parameters"],
         "sendBody": True,
         "specifyBody": "json",
-        "jsonBody": json.dumps(body, ensure_ascii=False),
+        "jsonBody": "={{ JSON.stringify({ id: " + first_json(source_node, "id") + ", " + extra_js + " }) }}",
         "options": {},
     }
 
@@ -763,30 +767,30 @@ nodes = [
         },
     ),
     node("yael-new-wa1", "4️⃣ WhatsApp: ליעל - פרטי תור", GREEN_NODE, 1, [464, -384], wa("={{ $json.ownerChatId }}", "={{ $json.ownerMsg }}"), GREEN),
-    node("yael-new-wa2", "5️⃣ WhatsApp: ליעל - הודעה להעברה ללקוחה", GREEN_NODE, 1, [688, -384], wa("={{ $('2️⃣ Code: Normalize Messages').item.json.ownerChatId }}", "={{ $('2️⃣ Code: Normalize Messages').item.json.customerForwardMsg }}"), GREEN),
-    node("yael-new-mark", "6️⃣ HTTP: Mark Sent", "n8n-nodes-base.httpRequest", 4.2, [912, -384], http_lifecycle("={{ $('2️⃣ Code: Normalize Messages').item.json.id }}", {"auditLog": "sent"})),
+    node("yael-new-wa2", "5️⃣ WhatsApp: ליעל - הודעה להעברה ללקוחה", GREEN_NODE, 1, [688, -384], wa("={{ " + first_json("2️⃣ Code: Normalize Messages", "ownerChatId") + " }}", "={{ " + first_json("2️⃣ Code: Normalize Messages", "customerForwardMsg") + " }}"), GREEN),
+    node("yael-new-mark", "6️⃣ HTTP: Mark Sent", "n8n-nodes-base.httpRequest", 4.2, [912, -384], http_lifecycle("2️⃣ Code: Normalize Messages", {"auditLog": "sent"})),
     node("yael-rem-sched", "🟠 Schedule: תזכורת — כל בוקר 9:00", "n8n-nodes-base.scheduleTrigger", 1, [-432, -160], cron("0 9 * * *")),
     node("yael-rem-http", "🟠1️⃣ HTTP: קריאת תורים", "n8n-nodes-base.httpRequest", 4.2, [-208, -160], http_get()),
     node("yael-rem-split", "🟠1️⃣ Split Appointments", "n8n-nodes-base.code", 2, [-96, -160], {"jsCode": SPLIT_APPOINTMENTS}),
     node("yael-rem-code", "🟠2️⃣ Code: סינון + שתי הודעות ליעל", "n8n-nodes-base.code", 2, [16, -160], {"jsCode": REMINDER_FILTER}),
     node("yael-rem-wa1", "🟠3️⃣ WhatsApp: ליעל - פרטי תזכורת", GREEN_NODE, 1, [240, -160], wa("={{ $json.ownerChatId }}", "={{ $json.ownerReminderMsg }}"), GREEN),
-    node("yael-rem-wa2", "🟠4️⃣ WhatsApp: ליעל - הודעה להעברה ללקוחה", GREEN_NODE, 1, [464, -160], wa("={{ $('🟠2️⃣ Code: סינון + שתי הודעות ליעל').item.json.ownerChatId }}", "={{ $('🟠2️⃣ Code: סינון + שתי הודעות ליעל').item.json.customerForwardMsg }}"), GREEN),
-    node("yael-rem-mark", "🟠5️⃣ HTTP: Mark Reminder Sent", "n8n-nodes-base.httpRequest", 4.2, [688, -160], http_lifecycle("={{ $('🟠2️⃣ Code: סינון + שתי הודעות ליעל').item.json.id }}", {"auditLog": "reminder_sent"})),
+    node("yael-rem-wa2", "🟠4️⃣ WhatsApp: ליעל - הודעה להעברה ללקוחה", GREEN_NODE, 1, [464, -160], wa("={{ " + first_json("🟠2️⃣ Code: סינון + שתי הודעות ליעל", "ownerChatId") + " }}", "={{ " + first_json("🟠2️⃣ Code: סינון + שתי הודעות ליעל", "customerForwardMsg") + " }}"), GREEN),
+    node("yael-rem-mark", "🟠5️⃣ HTTP: Mark Reminder Sent", "n8n-nodes-base.httpRequest", 4.2, [688, -160], http_lifecycle("🟠2️⃣ Code: סינון + שתי הודעות ליעל", {"auditLog": "reminder_sent"})),
     node("yael-sur-sched", "3️⃣ Schedule: סקר Fillout — כל 5 דקות", "n8n-nodes-base.scheduleTrigger", 1, [-432, 64], cron("*/5 * * * *")),
     node("yael-sur-http", "3️⃣1️⃣ HTTP: קריאת תורים", "n8n-nodes-base.httpRequest", 4.2, [-208, 64], http_get()),
     node("yael-sur-split", "3️⃣1️⃣ Split Appointments", "n8n-nodes-base.code", 2, [-96, 64], {"jsCode": SPLIT_APPOINTMENTS}),
     node("yael-sur-code", "3️⃣2️⃣ Code: מציאת טיפולים שבוצעו", "n8n-nodes-base.code", 2, [16, 64], {"jsCode": SURVEY_FILTER}),
     node("yael-sur-wa1", "3️⃣3️⃣ WhatsApp: ליעל - טיפול בוצע", GREEN_NODE, 1, [240, 64], wa("={{ $json.ownerChatId }}", "={{ $json.ownerDoneMsg }}"), GREEN),
-    node("yael-sur-wa2", "3️⃣4️⃣ WhatsApp: ליעל - סקר להעברה", GREEN_NODE, 1, [464, 64], wa("={{ $('3️⃣2️⃣ Code: מציאת טיפולים שבוצעו').item.json.ownerChatId }}", "={{ $('3️⃣2️⃣ Code: מציאת טיפולים שבוצעו').item.json.filloutForwardMsg }}"), GREEN),
-    node("yael-sur-mark", "3️⃣5️⃣ HTTP: Mark Fillout Sent", "n8n-nodes-base.httpRequest", 4.2, [688, 64], http_lifecycle("={{ $('3️⃣2️⃣ Code: מציאת טיפולים שבוצעו').item.json.id }}", {"reviewSent": "fillout_sent"})),
+    node("yael-sur-wa2", "3️⃣4️⃣ WhatsApp: ליעל - סקר להעברה", GREEN_NODE, 1, [464, 64], wa("={{ " + first_json("3️⃣2️⃣ Code: מציאת טיפולים שבוצעו", "ownerChatId") + " }}", "={{ " + first_json("3️⃣2️⃣ Code: מציאת טיפולים שבוצעו", "filloutForwardMsg") + " }}"), GREEN),
+    node("yael-sur-mark", "3️⃣5️⃣ HTTP: Mark Fillout Sent", "n8n-nodes-base.httpRequest", 4.2, [688, 64], http_lifecycle("3️⃣2️⃣ Code: מציאת טיפולים שבוצעו", {"reviewSent": "fillout_sent"})),
     node("yael-fb-hook", "3️⃣ Webhook: Fillout Feedback", "n8n-nodes-base.webhook", 1, [-432, 384], {"httpMethod": "POST", "path": "yael-review-rating", "options": {}}, None),
     node("yael-fb-parse", "3️⃣ Code: Parse Fillout Rating", "n8n-nodes-base.code", 2, [-208, 384], {"mode": "runOnceForEachItem", "jsCode": PARSE_FILLOUT}),
     node("yael-fb-if", "3️⃣ IF: Rating >= 4?", "n8n-nodes-base.if", 1, [16, 384], {"conditions": {"number": [{"value1": "={{ $json.rating }}", "operation": "largerEqual", "value2": 4}]}}),
     node("yael-fb-hi", "3️⃣ WhatsApp: ליעל - דירוג גבוה", GREEN_NODE, 1, [240, 288], wa("={{ $json.ownerChatId }}", "={{ $json.highRatingOwnerMsg }}"), GREEN),
-    node("yael-fb-g", "3️⃣ WhatsApp: ליעל - Google להעברה", GREEN_NODE, 1, [464, 288], wa("={{ $('3️⃣ Code: Parse Fillout Rating').item.json.ownerChatId }}", "={{ $('3️⃣ Code: Parse Fillout Rating').item.json.googleForwardMsg }}"), GREEN),
-    node("yael-fb-hi-mark", "3️⃣ HTTP: Mark Google Requested", "n8n-nodes-base.httpRequest", 4.2, [688, 288], http_lifecycle("={{ $('3️⃣ Code: Parse Fillout Rating').item.json.id }}", {"auditLog": "google_review_requested"})),
+    node("yael-fb-g", "3️⃣ WhatsApp: ליעל - Google להעברה", GREEN_NODE, 1, [464, 288], wa("={{ " + first_json("3️⃣ Code: Parse Fillout Rating", "ownerChatId") + " }}", "={{ " + first_json("3️⃣ Code: Parse Fillout Rating", "googleForwardMsg") + " }}"), GREEN),
+    node("yael-fb-hi-mark", "3️⃣ HTTP: Mark Google Requested", "n8n-nodes-base.httpRequest", 4.2, [688, 288], http_lifecycle("3️⃣ Code: Parse Fillout Rating", {"auditLog": "google_review_requested"})),
     node("yael-fb-lo", "3️⃣ WhatsApp: ליעל - דירוג נמוך", GREEN_NODE, 1, [240, 480], wa("={{ $json.ownerChatId }}", "={{ $json.lowRatingOwnerMsg }}"), GREEN),
-    node("yael-fb-lo-mark", "3️⃣ HTTP: Mark Low Rating", "n8n-nodes-base.httpRequest", 4.2, [464, 480], http_lifecycle("={{ $('3️⃣ Code: Parse Fillout Rating').item.json.id }}", {"auditLog": "low_rating_received"})),
+    node("yael-fb-lo-mark", "3️⃣ HTTP: Mark Low Rating", "n8n-nodes-base.httpRequest", 4.2, [464, 480], http_lifecycle("3️⃣ Code: Parse Fillout Rating", {"auditLog": "low_rating_received"})),
     node("yael-arc-sched", "🟣 Schedule: ארכיון — כל שעה", "n8n-nodes-base.scheduleTrigger", 1, [-432, 704], cron("0 * * * *")),
     node("yael-arc-http", "🟣1️⃣ HTTP: קריאת תורים", "n8n-nodes-base.httpRequest", 4.2, [-208, 704], http_get()),
     node("yael-arc-split", "🟣1️⃣ Split Appointments", "n8n-nodes-base.code", 2, [-96, 704], {"jsCode": SPLIT_APPOINTMENTS}),

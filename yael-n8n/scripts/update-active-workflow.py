@@ -6,9 +6,9 @@ import json
 import uuid
 from pathlib import Path
 
-wf_path = Path("/tmp/yael-n8n-incoming/n8n/yael-mavashev-booking-lifecycle.workflow.json")
+wf_path = Path("/tmp/yael-mavashev-booking-lifecycle.workflow.json")
 if not wf_path.exists():
-    wf_path = Path("/tmp/yael-mavashev-booking-lifecycle.workflow.json")
+    wf_path = Path("/tmp/yael-n8n-incoming/n8n/yael-mavashev-booking-lifecycle.workflow.json")
 wf = json.loads(wf_path.read_text(encoding="utf-8"))
 if wf.get("id") != "YaelBookLifeCycle01":
     raise SystemExit("unexpected workflow id")

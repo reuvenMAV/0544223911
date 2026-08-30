@@ -1,5 +1,5 @@
 import type { Express, Request, Response } from "express";
-import { createSurvey, listN8nAppointments, listN8nCustomers, listSurveys, n8nTokenConfigured, n8nTokenMatches, updateN8nLifecycle, upsertN8nCustomer } from "./n8nLifecycle";
+import { createSurvey, listN8nAppointments, listN8nCustomers, listSurveys, n8nTokenConfigured, n8nTokenMatches, parseAppointmentId, updateN8nLifecycle, upsertN8nCustomer } from "./n8nLifecycle";
 
 function unauthorized(res: Response) {
   res.status(401).json({ error: "unauthorized" });
@@ -30,8 +30,8 @@ export function registerYaelN8nRoutes(app: Express) {
 
   app.post("/api/n8n/lifecycle", async (req, res) => {
     if (!guard(req, res)) return;
-    const id = Number(req.body?.id);
-    if (!Number.isInteger(id) || id < 1) {
+    const id = parseAppointmentId(req.body?.id);
+    if (id == null) {
       res.status(400).json({ error: "invalid_id" });
       return;
     }
