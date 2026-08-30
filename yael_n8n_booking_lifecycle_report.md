@@ -8,7 +8,7 @@ The Haya/Forever n8n JSON was **not** imported, activated, or pointed at Haya’
 |---|---|
 | Google Sheet `Smart Booking — תורים` | Postgres `yael_booking_appointments` via `https://yael.mavash.net/api/n8n/*` |
 | Credential `Google Sheets חיה` | No Sheets nodes |
-| Green **642** | Green **biz140** (suffix 140; Yael number is now 054-806-0140) |
+| Green **642** | Official Green-API node + credential **Green-API 140** (community `Green biz140` returns 401) |
 | שלהבת חיה / הנביאים 45 / Haya Waze / Haya Google review | Yael Mavashev, אשקלון · נווה הדרים, Yael Waze search, **no invented Google review URL** |
 | Owner labels `לחיה` | `ליעל` |
 | Webhook `review-rating1` | `yael-review-rating` |
@@ -41,7 +41,7 @@ App WhatsApp/email in `server/notifications.ts` stays `enabled: false`. This n8n
 
 ## Still open after Publish
 
-1. Confirm Green **biz140** actually delivers to `054-806-0140` (first real booking will prove it).
+1. First real booking after the Green-API 140 switch should deliver to `054-806-0140`. Community credential `Green biz140` returned 401 and was replaced.
 2. Add an approved Yael Google review URL (do not invent). `GOOGLE_REVIEW_LINK` is still empty.
 3. Native survey is `https://yael.mavash.net/survey`. The n8n rating webhook is `https://newsite.mavash.net/webhook/yael-review-rating` (Fillout-shaped payload). The public survey posts to `/api/survey`, not to that webhook.
 4. `YAEL_N8N_TOKEN` is already set on newsite and in `yael.env`.
@@ -67,6 +67,12 @@ App WhatsApp/email in `server/notifications.ts` stays `enabled: false`. This n8n
 - One accidental empty webhook POST hit `3️⃣ Code: Parse Fillout Rating` and **errored before WhatsApp**.
 - Haya archive `חיה - ארכיון Customers...` still inactive. Rating workflow `MuPngG4_mD4gT75l3h5ka` still active and untouched.
 - Repo JSON remains `active: false` so a re-import cannot republish by accident.
+
+## First booking (stuck at IF, then Green 401)
+
+- Appointment `#1` existed with `audit_log=created`, but `yael_booking_services` was empty. The public site books from an in-memory catalog, so the n8n join returned an empty `שירות` and `3️⃣ IF: Valid + New?` failed on `service isNotEmpty`.
+- Seeded the five catalog services. API now returns `שירות=פדיקור`. IF no longer requires service; normalize falls back to `טיפול`.
+- After the IF passed, community node `Green biz140` returned `401`. WhatsApp nodes now use official `@green-api/n8n-nodes-whatsapp-greenapi.greenapi` + `Green-API 140` (`VBzwcT8zWZQJypE4`), already shared to the same Personal project.
 
 ## Isolation
 

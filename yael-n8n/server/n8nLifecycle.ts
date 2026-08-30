@@ -10,6 +10,21 @@ export const STATUS_HE: Record<string, string> = {
   completed: "בוצע",
 };
 
+export const SERVICE_NAME_BY_ID: Record<number, string> = {
+  1: "פדיקור",
+  2: "מניקור",
+  3: "מיני פדיקור",
+  4: "לק גל",
+  5: "פדיקור + מניקור",
+};
+
+export function resolveServiceName(serviceId?: number | null, serviceName?: string | null): string {
+  const named = String(serviceName || "").trim();
+  if (named) return named;
+  if (serviceId && SERVICE_NAME_BY_ID[serviceId]) return SERVICE_NAME_BY_ID[serviceId];
+  return "טיפול";
+}
+
 export function mapStatusHe(status: string): string {
   return STATUS_HE[status] ?? status;
 }
@@ -53,6 +68,7 @@ export function toAppointmentRow(input: {
   startsAtUtc: Date;
   status: string;
   createdAt?: Date;
+  serviceId?: number | null;
   serviceName?: string | null;
   auditLog?: string | null;
   reviewSent?: string | null;
@@ -64,7 +80,7 @@ export function toAppointmentRow(input: {
     טלפון: input.customerPhone,
     תאריך: formatJerusalemDate(input.startsAtUtc),
     שעה: formatJerusalemTime(input.startsAtUtc),
-    שירות: input.serviceName || "",
+    שירות: resolveServiceName(input.serviceId, input.serviceName),
     סטאטוס: mapStatusHe(input.status),
     סטטוס: mapStatusHe(input.status),
     מקור: "yael.mavash.net",
@@ -87,6 +103,7 @@ export async function listN8nAppointments() {
       startsAtUtc: appointments.startsAtUtc,
       status: appointments.status,
       createdAt: appointments.createdAt,
+      serviceId: appointments.serviceId,
       serviceName: services.nameHe,
       auditLog: n8nLifecycle.auditLog,
       reviewSent: n8nLifecycle.reviewSent,
@@ -95,7 +112,7 @@ export async function listN8nAppointments() {
     .leftJoin(services, eq(services.id, appointments.serviceId))
     .leftJoin(n8nLifecycle, eq(n8nLifecycle.appointmentId, appointments.id))
     .orderBy(asc(appointments.startsAtUtc));
-  return rows.map(toAppointmentRow);
+  return rows.map((row) => toAppointmentRow(row));
 }
 
 export async function markAppointmentCreated(appointmentId: number) {

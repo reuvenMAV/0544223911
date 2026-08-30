@@ -64,7 +64,7 @@
     {
       "parameters": {
         "mode": "runOnceForEachItem",
-        "jsCode": "const OWNER_CHAT_ID = '972548060140@c.us';\nconst SALON_NAME = 'Yael Mavashev — פדיקור ומניקור';\nconst SALON_ADDRESS = 'אשקלון, שכונת נווה הדרים';\nconst WAZE_URL = 'https://www.waze.com/ul?q=%D7%A9%D7%9B%D7%95%D7%A0%D7%AA%20%D7%A0%D7%95%D7%95%D7%94%20%D7%94%D7%93%D7%A8%D7%99%D7%9D%20%D7%90%D7%A9%D7%A7%D7%9C%D7%95%D7%9F&navigate=yes';\n\nfunction clean(value) {\n  return String(value == null ? '' : value).replace(/\\s+/g, ' ').trim();\n}\n\nfunction pick(row, ...keys) {\n  for (const key of keys) {\n    const value = row[key];\n    if (value !== undefined && value !== null && clean(value) !== '') return clean(value);\n  }\n  return '';\n}\n\nfunction toE164(phone) {\n  let p = String(phone || '').replace(/\\D/g, '');\n  if (!p) return '';\n  if (p.startsWith('972')) return p;\n  if (p.startsWith('0')) return '972' + p.slice(1);\n  if (p.length === 9 && /^5/.test(p)) return '972' + p;\n  return p;\n}\n\nfunction formatDate(raw) {\n  const value = raw == null ? '' : raw;\n  if (value instanceof Date && !isNaN(value.getTime())) {\n    return value.toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit', year: 'numeric' });\n  }\n  const s = clean(value);\n  if (!s) return '';\n  const d = new Date(s);\n  if (!isNaN(d.getTime())) {\n    return d.toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit', year: 'numeric' });\n  }\n  return s;\n}\n\nfunction formatTime(raw) {\n  const s = clean(raw);\n  if (!s) return '';\n  const m = s.match(/^(\\d{1,2}):(\\d{2})/);\n  if (m) return String(m[1]).padStart(2, '0') + ':' + m[2];\n  return s;\n}\n\nconst id = pick($json, 'id', 'ID', 'מזהה');\nconst name = pick($json, 'שם הלקוחה', 'שם');\nconst rawPhone = pick($json, 'טלפון', 'פלאפון', 'נייד');\nconst phone = toE164(rawPhone);\nconst date = formatDate($json['תאריך'] ?? $json.Date);\nconst time = formatTime($json['שעה'] ?? $json.Time);\nconst service = pick($json, 'שירות', 'טיפול');\nconst status = pick($json, 'סטאטוס', 'סטטוס', 'מצב');\nconst source = pick($json, 'מקור', 'Source', 'מקור הגעה');\nconst folderUrl = pick($json, 'Customer_Folder_URL');\nconst auditLog = pick($json, 'Audit_Log');\nconst createdAt = pick($json, 'Created_At');\nconst createdBy = pick($json, 'Created_By');\n\nconst ownerLines = [\n  '📌 תור חדש נקבע — Yael Mavashev',\n  '',\n  'מזהה: ' + id,\n  'שם: ' + name,\n  'טלפון: ' + rawPhone,\n  'מתי: ' + date + ' ' + time,\n  'שירות: ' + service,\n];\nif (status) ownerLines.push('סטטוס: ' + status);\nif (source) ownerLines.push('מקור: ' + source);\nif (createdBy) ownerLines.push('נוצר דרך: ' + createdBy);\nif (createdAt) ownerLines.push('נוצר בתאריך: ' + createdAt);\nif (folderUrl) ownerLines.push('תיקיית לקוחה: ' + folderUrl);\nconst ownerMsg = ownerLines.join('\\n');\n\nconst customerMsg = [\n  'שלום ' + name + '! 🌸',\n  '',\n  'התור שלך נקבע אצל ' + SALON_NAME,\n  '',\n  '📅 תאריך: ' + date,\n  '🕐 שעה: ' + time,\n  '💅 טיפול: ' + service,\n  '',\n  '📍 כתובת:',\n  SALON_ADDRESS,\n  'הכתובת המדויקת תאושר בנפרד.',\n  '',\n  '🗺 ניווט ב-Waze:',\n  WAZE_URL,\n  '',\n  'לקביעת תור נוסף: https://yael.mavash.net/',\n  'טלפון: 054-806-0140',\n  '',\n  'נתראה! 💅',\n  'Yael Mavashev',\n].join('\\n');\n\nconst customerForwardMsg = [\n  '📤 הודעה להעברה ללקוחה — Yael Mavashev',\n  '',\n  'שם: ' + name,\n  'טלפון לשליחה: ' + rawPhone,\n  phone ? 'טלפון מנורמל: +' + phone : '',\n  '',\n  '--- להעתקה ושליחה ללקוחה ---',\n  customerMsg,\n].filter(Boolean).join('\\n');\n\nreturn {\n  json: {\n    ...$json,\n    id,\n    name,\n    rawPhone,\n    phone,\n    date,\n    time,\n    service,\n    source,\n    folderUrl,\n    auditLog,\n    ownerChatId: OWNER_CHAT_ID,\n    ownerMsg,\n    customerMsg,\n    customerForwardMsg,\n  },\n};"
+        "jsCode": "const OWNER_CHAT_ID = '972548060140@c.us';\nconst SALON_NAME = 'Yael Mavashev — פדיקור ומניקור';\nconst SALON_ADDRESS = 'אשקלון, שכונת נווה הדרים';\nconst WAZE_URL = 'https://www.waze.com/ul?q=%D7%A9%D7%9B%D7%95%D7%A0%D7%AA%20%D7%A0%D7%95%D7%95%D7%94%20%D7%94%D7%93%D7%A8%D7%99%D7%9D%20%D7%90%D7%A9%D7%A7%D7%9C%D7%95%D7%9F&navigate=yes';\n\nfunction clean(value) {\n  return String(value == null ? '' : value).replace(/\\s+/g, ' ').trim();\n}\n\nfunction pick(row, ...keys) {\n  for (const key of keys) {\n    const value = row[key];\n    if (value !== undefined && value !== null && clean(value) !== '') return clean(value);\n  }\n  return '';\n}\n\nfunction toE164(phone) {\n  let p = String(phone || '').replace(/\\D/g, '');\n  if (!p) return '';\n  if (p.startsWith('972')) return p;\n  if (p.startsWith('0')) return '972' + p.slice(1);\n  if (p.length === 9 && /^5/.test(p)) return '972' + p;\n  return p;\n}\n\nfunction formatDate(raw) {\n  const value = raw == null ? '' : raw;\n  if (value instanceof Date && !isNaN(value.getTime())) {\n    return value.toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit', year: 'numeric' });\n  }\n  const s = clean(value);\n  if (!s) return '';\n  const d = new Date(s);\n  if (!isNaN(d.getTime())) {\n    return d.toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit', year: 'numeric' });\n  }\n  return s;\n}\n\nfunction formatTime(raw) {\n  const s = clean(raw);\n  if (!s) return '';\n  const m = s.match(/^(\\d{1,2}):(\\d{2})/);\n  if (m) return String(m[1]).padStart(2, '0') + ':' + m[2];\n  return s;\n}\n\nconst id = pick($json, 'id', 'ID', 'מזהה');\nconst name = pick($json, 'שם הלקוחה', 'שם');\nconst rawPhone = pick($json, 'טלפון', 'פלאפון', 'נייד');\nconst phone = toE164(rawPhone);\nconst date = formatDate($json['תאריך'] ?? $json.Date);\nconst time = formatTime($json['שעה'] ?? $json.Time);\nconst service = pick($json, 'שירות', 'טיפול') || 'טיפול';\nconst status = pick($json, 'סטאטוס', 'סטטוס', 'מצב');\nconst source = pick($json, 'מקור', 'Source', 'מקור הגעה');\nconst folderUrl = pick($json, 'Customer_Folder_URL');\nconst auditLog = pick($json, 'Audit_Log');\nconst createdAt = pick($json, 'Created_At');\nconst createdBy = pick($json, 'Created_By');\n\nconst ownerLines = [\n  '📌 תור חדש נקבע — Yael Mavashev',\n  '',\n  'מזהה: ' + id,\n  'שם: ' + name,\n  'טלפון: ' + rawPhone,\n  'מתי: ' + date + ' ' + time,\n  'שירות: ' + service,\n];\nif (status) ownerLines.push('סטטוס: ' + status);\nif (source) ownerLines.push('מקור: ' + source);\nif (createdBy) ownerLines.push('נוצר דרך: ' + createdBy);\nif (createdAt) ownerLines.push('נוצר בתאריך: ' + createdAt);\nif (folderUrl) ownerLines.push('תיקיית לקוחה: ' + folderUrl);\nconst ownerMsg = ownerLines.join('\\n');\n\nconst customerMsg = [\n  'שלום ' + name + '! 🌸',\n  '',\n  'התור שלך נקבע אצל ' + SALON_NAME,\n  '',\n  '📅 תאריך: ' + date,\n  '🕐 שעה: ' + time,\n  '💅 טיפול: ' + service,\n  '',\n  '📍 כתובת:',\n  SALON_ADDRESS,\n  'הכתובת המדויקת תאושר בנפרד.',\n  '',\n  '🗺 ניווט ב-Waze:',\n  WAZE_URL,\n  '',\n  'לקביעת תור נוסף: https://yael.mavash.net/',\n  'טלפון: 054-806-0140',\n  '',\n  'נתראה! 💅',\n  'Yael Mavashev',\n].join('\\n');\n\nconst customerForwardMsg = [\n  '📤 הודעה להעברה ללקוחה — Yael Mavashev',\n  '',\n  'שם: ' + name,\n  'טלפון לשליחה: ' + rawPhone,\n  phone ? 'טלפון מנורמל: +' + phone : '',\n  '',\n  '--- להעתקה ושליחה ללקוחה ---',\n  customerMsg,\n].filter(Boolean).join('\\n');\n\nreturn {\n  json: {\n    ...$json,\n    id,\n    name,\n    rawPhone,\n    phone,\n    date,\n    time,\n    service,\n    source,\n    folderUrl,\n    auditLog,\n    ownerChatId: OWNER_CHAT_ID,\n    ownerMsg,\n    customerMsg,\n    customerForwardMsg,\n  },\n};"
       },
       "id": "yael-new-norm",
       "name": "2️⃣ Code: Normalize Messages",
@@ -96,10 +96,6 @@
               "operation": "isNotEmpty"
             },
             {
-              "value1": "={{ $json.service }}",
-              "operation": "isNotEmpty"
-            },
-            {
               "value1": "={{ $json.auditLog }}",
               "value2": "created"
             }
@@ -119,20 +115,20 @@
       "parameters": {
         "chatId": "={{ $json.ownerChatId }}",
         "message": "={{ $json.ownerMsg }}",
-        "options": {}
+        "typingTime": 0
       },
       "id": "yael-new-wa1",
       "name": "4️⃣ WhatsApp: ליעל - פרטי תור",
-      "type": "n8n-nodes-whatsapp-green-api.greenApi",
+      "type": "@green-api/n8n-nodes-whatsapp-greenapi.greenapi",
       "typeVersion": 1,
       "position": [
         464,
         -384
       ],
       "credentials": {
-        "greenApi": {
-          "id": "Padox2sWCSv4sRZ5",
-          "name": "Green biz140"
+        "greenApiAuthApi": {
+          "id": "VBzwcT8zWZQJypE4",
+          "name": "Green-API 140"
         }
       }
     },
@@ -140,20 +136,20 @@
       "parameters": {
         "chatId": "={{ $('2️⃣ Code: Normalize Messages').item.json.ownerChatId }}",
         "message": "={{ $('2️⃣ Code: Normalize Messages').item.json.customerForwardMsg }}",
-        "options": {}
+        "typingTime": 0
       },
       "id": "yael-new-wa2",
       "name": "5️⃣ WhatsApp: ליעל - הודעה להעברה ללקוחה",
-      "type": "n8n-nodes-whatsapp-green-api.greenApi",
+      "type": "@green-api/n8n-nodes-whatsapp-greenapi.greenapi",
       "typeVersion": 1,
       "position": [
         688,
         -384
       ],
       "credentials": {
-        "greenApi": {
-          "id": "Padox2sWCSv4sRZ5",
-          "name": "Green biz140"
+        "greenApiAuthApi": {
+          "id": "VBzwcT8zWZQJypE4",
+          "name": "Green-API 140"
         }
       }
     },
@@ -243,7 +239,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const OWNER_CHAT_ID = '972548060140@c.us';\nconst SALON_NAME = 'Yael Mavashev — פדיקור ומניקור';\nconst SALON_ADDRESS = 'אשקלון, שכונת נווה הדרים';\nconst WAZE_URL = 'https://www.waze.com/ul?q=%D7%A9%D7%9B%D7%95%D7%A0%D7%AA%20%D7%A0%D7%95%D7%95%D7%94%20%D7%94%D7%93%D7%A8%D7%99%D7%9D%20%D7%90%D7%A9%D7%A7%D7%9C%D7%95%D7%9F&navigate=yes';\n\nfunction clean(value) {\n  return String(value == null ? '' : value).replace(/\\s+/g, ' ').trim();\n}\n\nfunction pick(row, ...keys) {\n  for (const key of keys) {\n    const value = row[key];\n    if (value !== undefined && value !== null && clean(value) !== '') return clean(value);\n  }\n  return '';\n}\n\nfunction toE164(phone) {\n  let p = String(phone || '').replace(/\\D/g, '');\n  if (!p) return '';\n  if (p.startsWith('972')) return p;\n  if (p.startsWith('0')) return '972' + p.slice(1);\n  if (p.length === 9 && /^5/.test(p)) return '972' + p;\n  return p;\n}\n\nfunction parseDate(raw) {\n  if (raw == null || raw === '') return null;\n  if (raw instanceof Date && !isNaN(raw.getTime())) return raw;\n  if (typeof raw === 'number' && raw > 0) return new Date((raw - 25569) * 86400 * 1000);\n  const s = clean(raw);\n  let m = s.match(/^(\\d{4})-(\\d{1,2})-(\\d{1,2})/);\n  if (m) return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));\n  m = s.match(/^(\\d{1,2})[./-](\\d{1,2})[./-](\\d{4})/);\n  if (m) {\n    const first = Number(m[1]);\n    const second = Number(m[2]);\n    const day = first > 12 ? first : second;\n    const month = first > 12 ? second : first;\n    return new Date(Number(m[3]), month - 1, day);\n  }\n  const d = new Date(s);\n  return isNaN(d.getTime()) ? null : d;\n}\n\nfunction dateKey(date) {\n  return [\n    date.getFullYear(),\n    String(date.getMonth() + 1).padStart(2, '0'),\n    String(date.getDate()).padStart(2, '0'),\n  ].join('-');\n}\n\nfunction formatDate(raw) {\n  const d = parseDate(raw);\n  if (!d) return clean(raw);\n  return d.toLocaleDateString('he-IL', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' });\n}\n\nfunction formatTime(raw) {\n  const s = clean(raw);\n  if (!s) return '';\n  const m = s.match(/^(\\d{1,2}):(\\d{2})/);\n  if (m) return String(m[1]).padStart(2, '0') + ':' + m[2];\n  return s;\n}\n\nconst now = new Date();\nconst tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);\nconst tomorrowKey = dateKey(tomorrow);\nconst out = [];\n\nfor (const item of $input.all()) {\n  const row = item.json;\n  const id = pick(row, 'id', 'ID', 'מזהה');\n  const name = pick(row, 'שם הלקוחה', 'שם');\n  const rawPhone = pick(row, 'טלפון', 'פלאפון', 'נייד');\n  const phone = toE164(rawPhone);\n  const apptDate = parseDate(row['תאריך'] ?? row.Date);\n  const time = formatTime(row['שעה'] ?? row.Time);\n  const service = pick(row, 'שירות', 'טיפול');\n  const status = pick(row, 'סטאטוס', 'סטטוס', 'מצב');\n  const auditLog = pick(row, 'Audit_Log');\n\n  if (!id || !name || !phone || !apptDate || !time || !service) continue;\n  if (status !== 'ממתין' && status !== 'מאושר') continue;\n  if (auditLog !== 'sent') continue;\n  if (dateKey(apptDate) !== tomorrowKey) continue;\n\n  const date = formatDate(apptDate);\n  const customerReminderMsg = [\n    'שלום ' + name + '! 👋',\n    '',\n    'תזכורת — יש לך תור מחר אצל ' + SALON_NAME,\n    '',\n    '📅 ' + date,\n    '🕐 שעה: ' + time,\n    '💅 טיפול: ' + service,\n    '',\n    '📍 ' + SALON_ADDRESS,\n    '🗺 Waze: ' + WAZE_URL,\n    '',\n    'לביטול או שינוי תור — שלחי הודעה או התקשרי 054-806-0140 🙏',\n    'Yael Mavashev 🌸',\n  ].join('\\n');\n\n  const ownerReminderMsg = [\n    '⏰ תזכורת לתור מחר — Yael Mavashev',\n    '',\n    'מזהה: ' + id,\n    'שם: ' + name,\n    'טלפון: ' + rawPhone,\n    'מתי: ' + date + ' ' + time,\n    'שירות: ' + service,\n    '',\n    'צריך להעביר ללקוחה את ההודעה הבאה.',\n  ].join('\\n');\n\n  const customerForwardMsg = [\n    '📤 הודעת תזכורת להעברה ללקוחה — Yael Mavashev',\n    '',\n    'שם: ' + name,\n    'טלפון לשליחה: ' + rawPhone,\n    phone ? 'טלפון מנורמל: +' + phone : '',\n    '',\n    '--- להעתקה ושליחה ללקוחה ---',\n    customerReminderMsg,\n  ].filter(Boolean).join('\\n');\n\n  out.push({\n    json: {\n      ...row,\n      id,\n      name,\n      rawPhone,\n      phone,\n      date,\n      time,\n      service,\n      auditLog,\n      ownerChatId: OWNER_CHAT_ID,\n      ownerReminderMsg,\n      customerReminderMsg,\n      customerForwardMsg,\n      reminderSentAt: new Date().toISOString(),\n    },\n  });\n}\n\nreturn out;"
+        "jsCode": "const OWNER_CHAT_ID = '972548060140@c.us';\nconst SALON_NAME = 'Yael Mavashev — פדיקור ומניקור';\nconst SALON_ADDRESS = 'אשקלון, שכונת נווה הדרים';\nconst WAZE_URL = 'https://www.waze.com/ul?q=%D7%A9%D7%9B%D7%95%D7%A0%D7%AA%20%D7%A0%D7%95%D7%95%D7%94%20%D7%94%D7%93%D7%A8%D7%99%D7%9D%20%D7%90%D7%A9%D7%A7%D7%9C%D7%95%D7%9F&navigate=yes';\n\nfunction clean(value) {\n  return String(value == null ? '' : value).replace(/\\s+/g, ' ').trim();\n}\n\nfunction pick(row, ...keys) {\n  for (const key of keys) {\n    const value = row[key];\n    if (value !== undefined && value !== null && clean(value) !== '') return clean(value);\n  }\n  return '';\n}\n\nfunction toE164(phone) {\n  let p = String(phone || '').replace(/\\D/g, '');\n  if (!p) return '';\n  if (p.startsWith('972')) return p;\n  if (p.startsWith('0')) return '972' + p.slice(1);\n  if (p.length === 9 && /^5/.test(p)) return '972' + p;\n  return p;\n}\n\nfunction parseDate(raw) {\n  if (raw == null || raw === '') return null;\n  if (raw instanceof Date && !isNaN(raw.getTime())) return raw;\n  if (typeof raw === 'number' && raw > 0) return new Date((raw - 25569) * 86400 * 1000);\n  const s = clean(raw);\n  let m = s.match(/^(\\d{4})-(\\d{1,2})-(\\d{1,2})/);\n  if (m) return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));\n  m = s.match(/^(\\d{1,2})[./-](\\d{1,2})[./-](\\d{4})/);\n  if (m) {\n    const first = Number(m[1]);\n    const second = Number(m[2]);\n    const day = first > 12 ? first : second;\n    const month = first > 12 ? second : first;\n    return new Date(Number(m[3]), month - 1, day);\n  }\n  const d = new Date(s);\n  return isNaN(d.getTime()) ? null : d;\n}\n\nfunction dateKey(date) {\n  return [\n    date.getFullYear(),\n    String(date.getMonth() + 1).padStart(2, '0'),\n    String(date.getDate()).padStart(2, '0'),\n  ].join('-');\n}\n\nfunction formatDate(raw) {\n  const d = parseDate(raw);\n  if (!d) return clean(raw);\n  return d.toLocaleDateString('he-IL', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' });\n}\n\nfunction formatTime(raw) {\n  const s = clean(raw);\n  if (!s) return '';\n  const m = s.match(/^(\\d{1,2}):(\\d{2})/);\n  if (m) return String(m[1]).padStart(2, '0') + ':' + m[2];\n  return s;\n}\n\nconst now = new Date();\nconst tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);\nconst tomorrowKey = dateKey(tomorrow);\nconst out = [];\n\nfor (const item of $input.all()) {\n  const row = item.json;\n  const id = pick(row, 'id', 'ID', 'מזהה');\n  const name = pick(row, 'שם הלקוחה', 'שם');\n  const rawPhone = pick(row, 'טלפון', 'פלאפון', 'נייד');\n  const phone = toE164(rawPhone);\n  const apptDate = parseDate(row['תאריך'] ?? row.Date);\n  const time = formatTime(row['שעה'] ?? row.Time);\n  const service = pick(row, 'שירות', 'טיפול') || 'טיפול';\n  const status = pick(row, 'סטאטוס', 'סטטוס', 'מצב');\n  const auditLog = pick(row, 'Audit_Log');\n\n  if (!id || !name || !phone || !apptDate || !time) continue;\n  if (status !== 'ממתין' && status !== 'מאושר') continue;\n  if (auditLog !== 'sent') continue;\n  if (dateKey(apptDate) !== tomorrowKey) continue;\n\n  const date = formatDate(apptDate);\n  const customerReminderMsg = [\n    'שלום ' + name + '! 👋',\n    '',\n    'תזכורת — יש לך תור מחר אצל ' + SALON_NAME,\n    '',\n    '📅 ' + date,\n    '🕐 שעה: ' + time,\n    '💅 טיפול: ' + service,\n    '',\n    '📍 ' + SALON_ADDRESS,\n    '🗺 Waze: ' + WAZE_URL,\n    '',\n    'לביטול או שינוי תור — שלחי הודעה או התקשרי 054-806-0140 🙏',\n    'Yael Mavashev 🌸',\n  ].join('\\n');\n\n  const ownerReminderMsg = [\n    '⏰ תזכורת לתור מחר — Yael Mavashev',\n    '',\n    'מזהה: ' + id,\n    'שם: ' + name,\n    'טלפון: ' + rawPhone,\n    'מתי: ' + date + ' ' + time,\n    'שירות: ' + service,\n    '',\n    'צריך להעביר ללקוחה את ההודעה הבאה.',\n  ].join('\\n');\n\n  const customerForwardMsg = [\n    '📤 הודעת תזכורת להעברה ללקוחה — Yael Mavashev',\n    '',\n    'שם: ' + name,\n    'טלפון לשליחה: ' + rawPhone,\n    phone ? 'טלפון מנורמל: +' + phone : '',\n    '',\n    '--- להעתקה ושליחה ללקוחה ---',\n    customerReminderMsg,\n  ].filter(Boolean).join('\\n');\n\n  out.push({\n    json: {\n      ...row,\n      id,\n      name,\n      rawPhone,\n      phone,\n      date,\n      time,\n      service,\n      auditLog,\n      ownerChatId: OWNER_CHAT_ID,\n      ownerReminderMsg,\n      customerReminderMsg,\n      customerForwardMsg,\n      reminderSentAt: new Date().toISOString(),\n    },\n  });\n}\n\nreturn out;"
       },
       "id": "yael-rem-code",
       "name": "🟠2️⃣ Code: סינון + שתי הודעות ליעל",
@@ -258,20 +254,20 @@
       "parameters": {
         "chatId": "={{ $json.ownerChatId }}",
         "message": "={{ $json.ownerReminderMsg }}",
-        "options": {}
+        "typingTime": 0
       },
       "id": "yael-rem-wa1",
       "name": "🟠3️⃣ WhatsApp: ליעל - פרטי תזכורת",
-      "type": "n8n-nodes-whatsapp-green-api.greenApi",
+      "type": "@green-api/n8n-nodes-whatsapp-greenapi.greenapi",
       "typeVersion": 1,
       "position": [
         240,
         -160
       ],
       "credentials": {
-        "greenApi": {
-          "id": "Padox2sWCSv4sRZ5",
-          "name": "Green biz140"
+        "greenApiAuthApi": {
+          "id": "VBzwcT8zWZQJypE4",
+          "name": "Green-API 140"
         }
       }
     },
@@ -279,20 +275,20 @@
       "parameters": {
         "chatId": "={{ $('🟠2️⃣ Code: סינון + שתי הודעות ליעל').item.json.ownerChatId }}",
         "message": "={{ $('🟠2️⃣ Code: סינון + שתי הודעות ליעל').item.json.customerForwardMsg }}",
-        "options": {}
+        "typingTime": 0
       },
       "id": "yael-rem-wa2",
       "name": "🟠4️⃣ WhatsApp: ליעל - הודעה להעברה ללקוחה",
-      "type": "n8n-nodes-whatsapp-green-api.greenApi",
+      "type": "@green-api/n8n-nodes-whatsapp-greenapi.greenapi",
       "typeVersion": 1,
       "position": [
         464,
         -160
       ],
       "credentials": {
-        "greenApi": {
-          "id": "Padox2sWCSv4sRZ5",
-          "name": "Green biz140"
+        "greenApiAuthApi": {
+          "id": "VBzwcT8zWZQJypE4",
+          "name": "Green-API 140"
         }
       }
     },
@@ -397,20 +393,20 @@
       "parameters": {
         "chatId": "={{ $json.ownerChatId }}",
         "message": "={{ $json.ownerDoneMsg }}",
-        "options": {}
+        "typingTime": 0
       },
       "id": "yael-sur-wa1",
       "name": "3️⃣3️⃣ WhatsApp: ליעל - טיפול בוצע",
-      "type": "n8n-nodes-whatsapp-green-api.greenApi",
+      "type": "@green-api/n8n-nodes-whatsapp-greenapi.greenapi",
       "typeVersion": 1,
       "position": [
         240,
         64
       ],
       "credentials": {
-        "greenApi": {
-          "id": "Padox2sWCSv4sRZ5",
-          "name": "Green biz140"
+        "greenApiAuthApi": {
+          "id": "VBzwcT8zWZQJypE4",
+          "name": "Green-API 140"
         }
       }
     },
@@ -418,20 +414,20 @@
       "parameters": {
         "chatId": "={{ $('3️⃣2️⃣ Code: מציאת טיפולים שבוצעו').item.json.ownerChatId }}",
         "message": "={{ $('3️⃣2️⃣ Code: מציאת טיפולים שבוצעו').item.json.filloutForwardMsg }}",
-        "options": {}
+        "typingTime": 0
       },
       "id": "yael-sur-wa2",
       "name": "3️⃣4️⃣ WhatsApp: ליעל - סקר להעברה",
-      "type": "n8n-nodes-whatsapp-green-api.greenApi",
+      "type": "@green-api/n8n-nodes-whatsapp-greenapi.greenapi",
       "typeVersion": 1,
       "position": [
         464,
         64
       ],
       "credentials": {
-        "greenApi": {
-          "id": "Padox2sWCSv4sRZ5",
-          "name": "Green biz140"
+        "greenApiAuthApi": {
+          "id": "VBzwcT8zWZQJypE4",
+          "name": "Green-API 140"
         }
       }
     },
@@ -517,20 +513,20 @@
       "parameters": {
         "chatId": "={{ $json.ownerChatId }}",
         "message": "={{ $json.highRatingOwnerMsg }}",
-        "options": {}
+        "typingTime": 0
       },
       "id": "yael-fb-hi",
       "name": "3️⃣ WhatsApp: ליעל - דירוג גבוה",
-      "type": "n8n-nodes-whatsapp-green-api.greenApi",
+      "type": "@green-api/n8n-nodes-whatsapp-greenapi.greenapi",
       "typeVersion": 1,
       "position": [
         240,
         288
       ],
       "credentials": {
-        "greenApi": {
-          "id": "Padox2sWCSv4sRZ5",
-          "name": "Green biz140"
+        "greenApiAuthApi": {
+          "id": "VBzwcT8zWZQJypE4",
+          "name": "Green-API 140"
         }
       }
     },
@@ -538,20 +534,20 @@
       "parameters": {
         "chatId": "={{ $('3️⃣ Code: Parse Fillout Rating').item.json.ownerChatId }}",
         "message": "={{ $('3️⃣ Code: Parse Fillout Rating').item.json.googleForwardMsg }}",
-        "options": {}
+        "typingTime": 0
       },
       "id": "yael-fb-g",
       "name": "3️⃣ WhatsApp: ליעל - Google להעברה",
-      "type": "n8n-nodes-whatsapp-green-api.greenApi",
+      "type": "@green-api/n8n-nodes-whatsapp-greenapi.greenapi",
       "typeVersion": 1,
       "position": [
         464,
         288
       ],
       "credentials": {
-        "greenApi": {
-          "id": "Padox2sWCSv4sRZ5",
-          "name": "Green biz140"
+        "greenApiAuthApi": {
+          "id": "VBzwcT8zWZQJypE4",
+          "name": "Green-API 140"
         }
       }
     },
@@ -586,20 +582,20 @@
       "parameters": {
         "chatId": "={{ $json.ownerChatId }}",
         "message": "={{ $json.lowRatingOwnerMsg }}",
-        "options": {}
+        "typingTime": 0
       },
       "id": "yael-fb-lo",
       "name": "3️⃣ WhatsApp: ליעל - דירוג נמוך",
-      "type": "n8n-nodes-whatsapp-green-api.greenApi",
+      "type": "@green-api/n8n-nodes-whatsapp-greenapi.greenapi",
       "typeVersion": 1,
       "position": [
         240,
         480
       ],
       "credentials": {
-        "greenApi": {
-          "id": "Padox2sWCSv4sRZ5",
-          "name": "Green biz140"
+        "greenApiAuthApi": {
+          "id": "VBzwcT8zWZQJypE4",
+          "name": "Green-API 140"
         }
       }
     },

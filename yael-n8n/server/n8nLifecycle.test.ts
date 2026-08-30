@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { formatJerusalemDate, formatJerusalemTime, mapStatusHe, n8nTokenConfigured, n8nTokenMatches, toAppointmentRow } from "./n8nLifecycle";
+import { formatJerusalemDate, formatJerusalemTime, mapStatusHe, n8nTokenConfigured, n8nTokenMatches, resolveServiceName, toAppointmentRow } from "./n8nLifecycle";
 
 const previousToken = process.env.YAEL_N8N_TOKEN;
 
@@ -20,6 +20,22 @@ describe("Yael n8n lifecycle helpers", () => {
     const startsAt = new Date("2026-09-01T07:00:00.000Z");
     expect(formatJerusalemDate(startsAt)).toBe("01.09.2026");
     expect(formatJerusalemTime(startsAt)).toBe("10:00");
+  });
+
+  it("falls back to the catalog name when the services table is empty", () => {
+    expect(resolveServiceName(1, null)).toBe("פדיקור");
+    expect(resolveServiceName(1, "")).toBe("פדיקור");
+    expect(resolveServiceName(99, "")).toBe("טיפול");
+    expect(toAppointmentRow({
+      id: 1,
+      customerName: "זויה",
+      customerPhone: "0544223911",
+      startsAtUtc: new Date("2026-08-31T07:00:00.000Z"),
+      status: "pending",
+      serviceId: 1,
+      serviceName: null,
+      auditLog: "created",
+    }).שירות).toBe("פדיקור");
   });
 
   it("emits sheet-compatible appointment fields for n8n Code nodes", () => {

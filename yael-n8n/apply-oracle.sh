@@ -16,6 +16,7 @@ cp -a "${SRC_DIR}/server/studioAuth.ts" "${APP}/server/studioAuth.ts"
 cp -a "${SRC_DIR}/server/studioAuth.test.ts" "${APP}/server/studioAuth.test.ts"
 cp -a "${SRC_DIR}/drizzle/pg/0002_yael_n8n_lifecycle.sql" "${APP}/drizzle/pg/0002_yael_n8n_lifecycle.sql"
 cp -a "${SRC_DIR}/drizzle/pg/0003_yael_n8n_surveys.sql" "${APP}/drizzle/pg/0003_yael_n8n_surveys.sql"
+cp -a "${SRC_DIR}/drizzle/pg/0004_yael_services_seed.sql" "${APP}/drizzle/pg/0004_yael_services_seed.sql"
 cp -a "${SRC_DIR}/client/Survey.tsx" "${APP}/client/src/pages/Survey.tsx"
 cp -a "${SRC_DIR}/client/Admin.tsx" "${APP}/client/src/pages/Admin.tsx"
 
@@ -207,6 +208,15 @@ if not any(entry.get("tag") == "0003_yael_n8n_surveys" for entry in data.get("en
         "version": "7",
         "when": 1788112800000,
         "tag": "0003_yael_n8n_surveys",
+        "breakpoints": True,
+    })
+    journal.write_text(__import__("json").dumps(data, indent=2) + "\n")
+if not any(entry.get("tag") == "0004_yael_services_seed" for entry in data.get("entries", [])):
+    data["entries"].append({
+        "idx": 4,
+        "version": "7",
+        "when": 1788118500000,
+        "tag": "0004_yael_services_seed",
         "breakpoints": True,
     })
     journal.write_text(__import__("json").dumps(data, indent=2) + "\n")
