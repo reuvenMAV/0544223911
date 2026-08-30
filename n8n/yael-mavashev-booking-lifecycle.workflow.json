@@ -1,0 +1,1063 @@
+{
+  "id": "YaelBookLifeCycle01",
+  "name": "Yael Mavashev — תורים",
+  "active": false,
+  "versionId": "yael-booking-lifecycle-v1",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "*/1 * * * *"
+            }
+          ]
+        }
+      },
+      "id": "yael-new-sched",
+      "name": "Schedule: כל דקה",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [
+        -432,
+        -384
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://yael.mavash.net/api/n8n/appointments",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Yael-N8n-Token",
+              "value": "={{ $vars.YAEL_N8N_TOKEN }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "yael-new-http",
+      "name": "1️⃣ HTTP: קריאת תורים",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -208,
+        -384
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const payload = $json.appointments ?? $json.body?.appointments ?? $json.data ?? $json;\nconst rows = Array.isArray(payload) ? payload : [];\nreturn rows.filter((row) => row && (row.id || row.ID)).map((row) => ({ json: row }));"
+      },
+      "id": "yael-new-split",
+      "name": "1️⃣ Split Appointments",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -96,
+        -384
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const OWNER_CHAT_ID = '972548060140@c.us';\nconst SALON_NAME = 'Yael Mavashev — פדיקור ומניקור';\nconst SALON_ADDRESS = 'אשקלון, שכונת נווה הדרים';\nconst WAZE_URL = 'https://www.waze.com/ul?q=%D7%A9%D7%9B%D7%95%D7%A0%D7%AA%20%D7%A0%D7%95%D7%95%D7%94%20%D7%94%D7%93%D7%A8%D7%99%D7%9D%20%D7%90%D7%A9%D7%A7%D7%9C%D7%95%D7%9F&navigate=yes';\n\nfunction clean(value) {\n  return String(value == null ? '' : value).replace(/\\s+/g, ' ').trim();\n}\n\nfunction pick(row, ...keys) {\n  for (const key of keys) {\n    const value = row[key];\n    if (value !== undefined && value !== null && clean(value) !== '') return clean(value);\n  }\n  return '';\n}\n\nfunction toE164(phone) {\n  let p = String(phone || '').replace(/\\D/g, '');\n  if (!p) return '';\n  if (p.startsWith('972')) return p;\n  if (p.startsWith('0')) return '972' + p.slice(1);\n  if (p.length === 9 && /^5/.test(p)) return '972' + p;\n  return p;\n}\n\nfunction formatDate(raw) {\n  const value = raw == null ? '' : raw;\n  if (value instanceof Date && !isNaN(value.getTime())) {\n    return value.toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit', year: 'numeric' });\n  }\n  const s = clean(value);\n  if (!s) return '';\n  const d = new Date(s);\n  if (!isNaN(d.getTime())) {\n    return d.toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit', year: 'numeric' });\n  }\n  return s;\n}\n\nfunction formatTime(raw) {\n  const s = clean(raw);\n  if (!s) return '';\n  const m = s.match(/^(\\d{1,2}):(\\d{2})/);\n  if (m) return String(m[1]).padStart(2, '0') + ':' + m[2];\n  return s;\n}\n\nconst id = pick($json, 'id', 'ID', 'מזהה');\nconst name = pick($json, 'שם הלקוחה', 'שם');\nconst rawPhone = pick($json, 'טלפון', 'פלאפון', 'נייד');\nconst phone = toE164(rawPhone);\nconst date = formatDate($json['תאריך'] ?? $json.Date);\nconst time = formatTime($json['שעה'] ?? $json.Time);\nconst service = pick($json, 'שירות', 'טיפול') || 'טיפול';\nconst status = pick($json, 'סטאטוס', 'סטטוס', 'מצב');\nconst source = pick($json, 'מקור', 'Source', 'מקור הגעה');\nconst folderUrl = pick($json, 'Customer_Folder_URL');\nconst auditLog = pick($json, 'Audit_Log');\nconst createdAt = pick($json, 'Created_At');\nconst createdBy = pick($json, 'Created_By');\n\nconst ownerLines = [\n  '📌 תור חדש נקבע — Yael Mavashev',\n  '',\n  'מזהה: ' + id,\n  'שם: ' + name,\n  'טלפון: ' + rawPhone,\n  'מתי: ' + date + ' ' + time,\n  'שירות: ' + service,\n];\nif (status) ownerLines.push('סטטוס: ' + status);\nif (source) ownerLines.push('מקור: ' + source);\nif (createdBy) ownerLines.push('נוצר דרך: ' + createdBy);\nif (createdAt) ownerLines.push('נוצר בתאריך: ' + createdAt);\nif (folderUrl) ownerLines.push('תיקיית לקוחה: ' + folderUrl);\nconst ownerMsg = ownerLines.join('\\n');\n\nconst customerMsg = [\n  'שלום ' + name + '! 🌸',\n  '',\n  'התור שלך נקבע אצל ' + SALON_NAME,\n  '',\n  '📅 תאריך: ' + date,\n  '🕐 שעה: ' + time,\n  '💅 טיפול: ' + service,\n  '',\n  '📍 כתובת:',\n  SALON_ADDRESS,\n  'הכתובת המדויקת תאושר בנפרד.',\n  '',\n  '🗺 ניווט ב-Waze:',\n  WAZE_URL,\n  '',\n  'לקביעת תור נוסף: https://yael.mavash.net/',\n  'טלפון: 054-806-0140',\n  '',\n  'נתראה! 💅',\n  'Yael Mavashev',\n].join('\\n');\n\nconst customerForwardMsg = [\n  '📤 הודעה להעברה ללקוחה — Yael Mavashev',\n  '',\n  'שם: ' + name,\n  'טלפון לשליחה: ' + rawPhone,\n  phone ? 'טלפון מנורמל: +' + phone : '',\n  '',\n  '--- להעתקה ושליחה ללקוחה ---',\n  customerMsg,\n].filter(Boolean).join('\\n');\n\nreturn {\n  json: {\n    ...$json,\n    id,\n    name,\n    rawPhone,\n    phone,\n    date,\n    time,\n    service,\n    source,\n    folderUrl,\n    auditLog,\n    ownerChatId: OWNER_CHAT_ID,\n    ownerMsg,\n    customerMsg,\n    customerForwardMsg,\n  },\n};"
+      },
+      "id": "yael-new-norm",
+      "name": "2️⃣ Code: Normalize Messages",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        16,
+        -384
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.name }}",
+              "operation": "isNotEmpty"
+            },
+            {
+              "value1": "={{ $json.phone }}",
+              "operation": "isNotEmpty"
+            },
+            {
+              "value1": "={{ $json.date }}",
+              "operation": "isNotEmpty"
+            },
+            {
+              "value1": "={{ $json.time }}",
+              "operation": "isNotEmpty"
+            },
+            {
+              "value1": "={{ $json.auditLog }}",
+              "value2": "created"
+            }
+          ]
+        }
+      },
+      "id": "yael-new-if",
+      "name": "3️⃣ IF: Valid + New?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        240,
+        -384
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.ownerChatId }}",
+        "message": "={{ $json.ownerMsg }}",
+        "options": {}
+      },
+      "id": "yael-new-wa1",
+      "name": "4️⃣ WhatsApp: ליעל - פרטי תור",
+      "type": "n8n-nodes-whatsapp-green-api.greenApi",
+      "typeVersion": 1,
+      "position": [
+        464,
+        -384
+      ],
+      "credentials": {
+        "greenApi": {
+          "id": "Yt6E9F43cXq2ctMX",
+          "name": "Green account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $(\"2️⃣ Code: Normalize Messages\").first().json.ownerChatId }}",
+        "message": "={{ $(\"2️⃣ Code: Normalize Messages\").first().json.customerForwardMsg }}",
+        "options": {}
+      },
+      "id": "yael-new-wa2",
+      "name": "5️⃣ WhatsApp: ליעל - הודעה להעברה ללקוחה",
+      "type": "n8n-nodes-whatsapp-green-api.greenApi",
+      "typeVersion": 1,
+      "position": [
+        688,
+        -384
+      ],
+      "credentials": {
+        "greenApi": {
+          "id": "Yt6E9F43cXq2ctMX",
+          "name": "Green account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://yael.mavash.net/api/n8n/lifecycle",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Yael-N8n-Token",
+              "value": "={{ $vars.YAEL_N8N_TOKEN }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ id: $(\"2️⃣ Code: Normalize Messages\").first().json.id, auditLog: \"sent\" }) }}",
+        "options": {}
+      },
+      "id": "yael-new-mark",
+      "name": "6️⃣ HTTP: Mark Sent",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        912,
+        -384
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 9 * * *"
+            }
+          ]
+        }
+      },
+      "id": "yael-rem-sched",
+      "name": "🟠 Schedule: תזכורת — כל בוקר 9:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [
+        -432,
+        -160
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://yael.mavash.net/api/n8n/appointments",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Yael-N8n-Token",
+              "value": "={{ $vars.YAEL_N8N_TOKEN }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "yael-rem-http",
+      "name": "🟠1️⃣ HTTP: קריאת תורים",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -208,
+        -160
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const payload = $json.appointments ?? $json.body?.appointments ?? $json.data ?? $json;\nconst rows = Array.isArray(payload) ? payload : [];\nreturn rows.filter((row) => row && (row.id || row.ID)).map((row) => ({ json: row }));"
+      },
+      "id": "yael-rem-split",
+      "name": "🟠1️⃣ Split Appointments",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -96,
+        -160
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const OWNER_CHAT_ID = '972548060140@c.us';\nconst SALON_NAME = 'Yael Mavashev — פדיקור ומניקור';\nconst SALON_ADDRESS = 'אשקלון, שכונת נווה הדרים';\nconst WAZE_URL = 'https://www.waze.com/ul?q=%D7%A9%D7%9B%D7%95%D7%A0%D7%AA%20%D7%A0%D7%95%D7%95%D7%94%20%D7%94%D7%93%D7%A8%D7%99%D7%9D%20%D7%90%D7%A9%D7%A7%D7%9C%D7%95%D7%9F&navigate=yes';\n\nfunction clean(value) {\n  return String(value == null ? '' : value).replace(/\\s+/g, ' ').trim();\n}\n\nfunction pick(row, ...keys) {\n  for (const key of keys) {\n    const value = row[key];\n    if (value !== undefined && value !== null && clean(value) !== '') return clean(value);\n  }\n  return '';\n}\n\nfunction toE164(phone) {\n  let p = String(phone || '').replace(/\\D/g, '');\n  if (!p) return '';\n  if (p.startsWith('972')) return p;\n  if (p.startsWith('0')) return '972' + p.slice(1);\n  if (p.length === 9 && /^5/.test(p)) return '972' + p;\n  return p;\n}\n\nfunction parseDate(raw) {\n  if (raw == null || raw === '') return null;\n  if (raw instanceof Date && !isNaN(raw.getTime())) return raw;\n  if (typeof raw === 'number' && raw > 0) return new Date((raw - 25569) * 86400 * 1000);\n  const s = clean(raw);\n  let m = s.match(/^(\\d{4})-(\\d{1,2})-(\\d{1,2})/);\n  if (m) return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));\n  m = s.match(/^(\\d{1,2})[./-](\\d{1,2})[./-](\\d{4})/);\n  if (m) {\n    const first = Number(m[1]);\n    const second = Number(m[2]);\n    const day = first > 12 ? first : second;\n    const month = first > 12 ? second : first;\n    return new Date(Number(m[3]), month - 1, day);\n  }\n  const d = new Date(s);\n  return isNaN(d.getTime()) ? null : d;\n}\n\nfunction dateKey(date) {\n  return [\n    date.getFullYear(),\n    String(date.getMonth() + 1).padStart(2, '0'),\n    String(date.getDate()).padStart(2, '0'),\n  ].join('-');\n}\n\nfunction formatDate(raw) {\n  const d = parseDate(raw);\n  if (!d) return clean(raw);\n  return d.toLocaleDateString('he-IL', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' });\n}\n\nfunction formatTime(raw) {\n  const s = clean(raw);\n  if (!s) return '';\n  const m = s.match(/^(\\d{1,2}):(\\d{2})/);\n  if (m) return String(m[1]).padStart(2, '0') + ':' + m[2];\n  return s;\n}\n\nconst now = new Date();\nconst tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);\nconst tomorrowKey = dateKey(tomorrow);\nconst out = [];\n\nfor (const item of $input.all()) {\n  const row = item.json;\n  const id = pick(row, 'id', 'ID', 'מזהה');\n  const name = pick(row, 'שם הלקוחה', 'שם');\n  const rawPhone = pick(row, 'טלפון', 'פלאפון', 'נייד');\n  const phone = toE164(rawPhone);\n  const apptDate = parseDate(row['תאריך'] ?? row.Date);\n  const time = formatTime(row['שעה'] ?? row.Time);\n  const service = pick(row, 'שירות', 'טיפול') || 'טיפול';\n  const status = pick(row, 'סטאטוס', 'סטטוס', 'מצב');\n  const auditLog = pick(row, 'Audit_Log');\n\n  if (!id || !name || !phone || !apptDate || !time) continue;\n  if (status !== 'ממתין' && status !== 'מאושר') continue;\n  if (auditLog !== 'sent') continue;\n  if (dateKey(apptDate) !== tomorrowKey) continue;\n\n  const date = formatDate(apptDate);\n  const customerReminderMsg = [\n    'שלום ' + name + '! 👋',\n    '',\n    'תזכורת — יש לך תור מחר אצל ' + SALON_NAME,\n    '',\n    '📅 ' + date,\n    '🕐 שעה: ' + time,\n    '💅 טיפול: ' + service,\n    '',\n    '📍 ' + SALON_ADDRESS,\n    '🗺 Waze: ' + WAZE_URL,\n    '',\n    'לביטול או שינוי תור — שלחי הודעה או התקשרי 054-806-0140 🙏',\n    'Yael Mavashev 🌸',\n  ].join('\\n');\n\n  const ownerReminderMsg = [\n    '⏰ תזכורת לתור מחר — Yael Mavashev',\n    '',\n    'מזהה: ' + id,\n    'שם: ' + name,\n    'טלפון: ' + rawPhone,\n    'מתי: ' + date + ' ' + time,\n    'שירות: ' + service,\n    '',\n    'צריך להעביר ללקוחה את ההודעה הבאה.',\n  ].join('\\n');\n\n  const customerForwardMsg = [\n    '📤 הודעת תזכורת להעברה ללקוחה — Yael Mavashev',\n    '',\n    'שם: ' + name,\n    'טלפון לשליחה: ' + rawPhone,\n    phone ? 'טלפון מנורמל: +' + phone : '',\n    '',\n    '--- להעתקה ושליחה ללקוחה ---',\n    customerReminderMsg,\n  ].filter(Boolean).join('\\n');\n\n  out.push({\n    json: {\n      ...row,\n      id,\n      name,\n      rawPhone,\n      phone,\n      date,\n      time,\n      service,\n      auditLog,\n      ownerChatId: OWNER_CHAT_ID,\n      ownerReminderMsg,\n      customerReminderMsg,\n      customerForwardMsg,\n      reminderSentAt: new Date().toISOString(),\n    },\n  });\n}\n\nreturn out;"
+      },
+      "id": "yael-rem-code",
+      "name": "🟠2️⃣ Code: סינון + שתי הודעות ליעל",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        16,
+        -160
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.ownerChatId }}",
+        "message": "={{ $json.ownerReminderMsg }}",
+        "options": {}
+      },
+      "id": "yael-rem-wa1",
+      "name": "🟠3️⃣ WhatsApp: ליעל - פרטי תזכורת",
+      "type": "n8n-nodes-whatsapp-green-api.greenApi",
+      "typeVersion": 1,
+      "position": [
+        240,
+        -160
+      ],
+      "credentials": {
+        "greenApi": {
+          "id": "Yt6E9F43cXq2ctMX",
+          "name": "Green account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $(\"🟠2️⃣ Code: סינון + שתי הודעות ליעל\").first().json.ownerChatId }}",
+        "message": "={{ $(\"🟠2️⃣ Code: סינון + שתי הודעות ליעל\").first().json.customerForwardMsg }}",
+        "options": {}
+      },
+      "id": "yael-rem-wa2",
+      "name": "🟠4️⃣ WhatsApp: ליעל - הודעה להעברה ללקוחה",
+      "type": "n8n-nodes-whatsapp-green-api.greenApi",
+      "typeVersion": 1,
+      "position": [
+        464,
+        -160
+      ],
+      "credentials": {
+        "greenApi": {
+          "id": "Yt6E9F43cXq2ctMX",
+          "name": "Green account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://yael.mavash.net/api/n8n/lifecycle",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Yael-N8n-Token",
+              "value": "={{ $vars.YAEL_N8N_TOKEN }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ id: $(\"🟠2️⃣ Code: סינון + שתי הודעות ליעל\").first().json.id, auditLog: \"reminder_sent\" }) }}",
+        "options": {}
+      },
+      "id": "yael-rem-mark",
+      "name": "🟠5️⃣ HTTP: Mark Reminder Sent",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        688,
+        -160
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "*/5 * * * *"
+            }
+          ]
+        }
+      },
+      "id": "yael-sur-sched",
+      "name": "3️⃣ Schedule: סקר Fillout — כל 5 דקות",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [
+        -432,
+        64
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://yael.mavash.net/api/n8n/appointments",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Yael-N8n-Token",
+              "value": "={{ $vars.YAEL_N8N_TOKEN }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "yael-sur-http",
+      "name": "3️⃣1️⃣ HTTP: קריאת תורים",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -208,
+        64
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const payload = $json.appointments ?? $json.body?.appointments ?? $json.data ?? $json;\nconst rows = Array.isArray(payload) ? payload : [];\nreturn rows.filter((row) => row && (row.id || row.ID)).map((row) => ({ json: row }));"
+      },
+      "id": "yael-sur-split",
+      "name": "3️⃣1️⃣ Split Appointments",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -96,
+        64
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const OWNER_CHAT_ID = '972548060140@c.us';\nconst SALON_NAME = 'Yael Mavashev — פדיקור ומניקור';\nconst FILLOUT_FORM_URL = 'https://yael.mavash.net/survey';\n\nfunction clean(value) {\n  return String(value == null ? '' : value).replace(/\\s+/g, ' ').trim();\n}\n\nfunction pick(row, ...keys) {\n  for (const key of keys) {\n    const value = row[key];\n    if (value !== undefined && value !== null && clean(value) !== '') return clean(value);\n  }\n  return '';\n}\n\nfunction toE164(phone) {\n  let p = String(phone || '').replace(/\\D/g, '');\n  if (!p) return '';\n  if (p.startsWith('972')) return p;\n  if (p.startsWith('0')) return '972' + p.slice(1);\n  if (p.length === 9 && /^5/.test(p)) return '972' + p;\n  return p;\n}\n\nfunction formatDate(raw) { return clean(raw); }\nfunction formatTime(raw) {\n  const s = clean(raw);\n  const m = s.match(/^(\\d{1,2}):(\\d{2})/);\n  return m ? String(m[1]).padStart(2, '0') + ':' + m[2] : s;\n}\n\nfunction alreadySent(value) {\n  const s = clean(value).toLowerCase();\n  return Boolean(s) && s !== 'false' && s !== '0' && s !== 'לא';\n}\n\nfunction withParams(url, params) {\n  const sep = url.includes('?') ? '&' : '?';\n  return url + sep + Object.entries(params)\n    .filter(([, value]) => clean(value) !== '')\n    .map(([key, value]) => encodeURIComponent(key) + '=' + encodeURIComponent(clean(value)))\n    .join('&');\n}\n\nif (!FILLOUT_FORM_URL || /PENDING|PUT_FILLOUT|example\\.com/i.test(FILLOUT_FORM_URL)) {\n  return [];\n}\n\nconst out = [];\nfor (const item of $input.all()) {\n  const row = item.json;\n  const id = pick(row, 'id', 'ID', 'מזהה');\n  const name = pick(row, 'שם הלקוחה', 'שם');\n  const rawPhone = pick(row, 'טלפון', 'פלאפון', 'נייד');\n  const phone = toE164(rawPhone);\n  const date = formatDate(row['תאריך'] ?? row.Date);\n  const time = formatTime(row['שעה'] ?? row.Time);\n  const service = pick(row, 'שירות', 'טיפול');\n  const status = pick(row, 'סטאטוס', 'סטטוס', 'מצב');\n  const reviewSent = pick(row, 'Review_Sent');\n\n  if (!id || !name || !phone) continue;\n  if (status !== 'בוצע') continue;\n  if (alreadySent(reviewSent)) continue;\n\n  const filloutUrl = withParams(FILLOUT_FORM_URL, { phone: rawPhone, id, name });\n  const ownerDoneMsg = [\n    '✅ טיפול סומן כבוצע — Yael Mavashev',\n    '',\n    'מזהה: ' + id,\n    'שם: ' + name,\n    'טלפון: ' + rawPhone,\n    date ? 'תאריך: ' + date : '',\n    time ? 'שעה: ' + time : '',\n    service ? 'שירות: ' + service : '',\n    '',\n    'בהודעה הבאה יש סקר Fillout להעברה ללקוחה.',\n  ].filter(Boolean).join('\\n');\n\n  const customerSurveyMsg = [\n    'היי ' + name + ' 😊',\n    '',\n    'תודה שביקרת אצל ' + SALON_NAME + ' 💅',\n    'נשמח אם תמלאי סקר קצר על החוויה שלך:',\n    filloutUrl,\n    '',\n    'זה לוקח פחות מדקה 🙏',\n    'Yael Mavashev 🌸',\n  ].join('\\n');\n\n  const filloutForwardMsg = [\n    '📤 הודעת סקר Fillout להעברה ללקוחה — Yael Mavashev',\n    '',\n    'שם: ' + name,\n    'טלפון לשליחה: ' + rawPhone,\n    phone ? 'טלפון מנורמל: +' + phone : '',\n    '',\n    '--- להעתקה ושליחה ללקוחה ---',\n    customerSurveyMsg,\n  ].filter(Boolean).join('\\n');\n\n  out.push({\n    json: {\n      ...row,\n      id,\n      name,\n      rawPhone,\n      phone,\n      date,\n      time,\n      service,\n      ownerChatId: OWNER_CHAT_ID,\n      ownerDoneMsg,\n      filloutForwardMsg,\n      customerSurveyMsg,\n      filloutUrl,\n      filloutSentAt: new Date().toISOString(),\n    },\n  });\n}\nreturn out;"
+      },
+      "id": "yael-sur-code",
+      "name": "3️⃣2️⃣ Code: מציאת טיפולים שבוצעו",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        16,
+        64
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.ownerChatId }}",
+        "message": "={{ $json.ownerDoneMsg }}",
+        "options": {}
+      },
+      "id": "yael-sur-wa1",
+      "name": "3️⃣3️⃣ WhatsApp: ליעל - טיפול בוצע",
+      "type": "n8n-nodes-whatsapp-green-api.greenApi",
+      "typeVersion": 1,
+      "position": [
+        240,
+        64
+      ],
+      "credentials": {
+        "greenApi": {
+          "id": "Yt6E9F43cXq2ctMX",
+          "name": "Green account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $(\"3️⃣2️⃣ Code: מציאת טיפולים שבוצעו\").first().json.ownerChatId }}",
+        "message": "={{ $(\"3️⃣2️⃣ Code: מציאת טיפולים שבוצעו\").first().json.filloutForwardMsg }}",
+        "options": {}
+      },
+      "id": "yael-sur-wa2",
+      "name": "3️⃣4️⃣ WhatsApp: ליעל - סקר להעברה",
+      "type": "n8n-nodes-whatsapp-green-api.greenApi",
+      "typeVersion": 1,
+      "position": [
+        464,
+        64
+      ],
+      "credentials": {
+        "greenApi": {
+          "id": "Yt6E9F43cXq2ctMX",
+          "name": "Green account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://yael.mavash.net/api/n8n/lifecycle",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Yael-N8n-Token",
+              "value": "={{ $vars.YAEL_N8N_TOKEN }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ id: $(\"3️⃣2️⃣ Code: מציאת טיפולים שבוצעו\").first().json.id, reviewSent: \"fillout_sent\" }) }}",
+        "options": {}
+      },
+      "id": "yael-sur-mark",
+      "name": "3️⃣5️⃣ HTTP: Mark Fillout Sent",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        688,
+        64
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "yael-review-rating",
+        "options": {}
+      },
+      "id": "yael-fb-hook",
+      "name": "3️⃣ Webhook: Fillout Feedback",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        -432,
+        384
+      ],
+      "webhookId": "yael-review-rating-inactive"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const OWNER_CHAT_ID = '972548060140@c.us';\nconst GOOGLE_REVIEW_LINK = '';\n\nfunction clean(value) {\n  return String(value == null ? '' : value).replace(/\\s+/g, ' ').trim();\n}\n\nfunction arrayFrom(value) {\n  return Array.isArray(value) ? value : [];\n}\n\nfunction findUrlParam(submission, name) {\n  const params = arrayFrom(submission?.urlParameters || submission?.url_parameters || submission?.hiddenFields || submission?.hidden_fields);\n  const hit = params.find((p) => clean(p.name || p.key).toLowerCase() === name.toLowerCase());\n  return clean(hit?.value);\n}\n\nfunction findQuestionValue(submission, names) {\n  const wanted = names.map((n) => clean(n).toLowerCase());\n  const questions = arrayFrom(submission?.questions || submission?.answers || submission?.responses);\n  for (const q of questions) {\n    const qName = clean(q.name || q.label || q.title || q.question).toLowerCase();\n    if (wanted.includes(qName)) return q.value ?? q.answer ?? q.response ?? '';\n  }\n  return '';\n}\n\nfunction toE164(phone) {\n  let p = String(phone || '').replace(/\\D/g, '');\n  if (!p) return '';\n  if (p.startsWith('972')) return p;\n  if (p.startsWith('0')) return '972' + p.slice(1);\n  if (p.length === 9 && /^5/.test(p)) return '972' + p;\n  return p;\n}\n\nfunction numericRating(value) {\n  if (typeof value === 'number') return value;\n  const m = String(value || '').match(/\\d+(?:\\.\\d+)?/);\n  return m ? Number(m[0]) : 0;\n}\n\nconst body = $json.body || $json;\nconst submission = body.submission || body;\nconst id = findUrlParam(submission, 'id') || clean(body.id || submission.id);\nconst rawPhone = findUrlParam(submission, 'phone') || clean(body.phone || submission.phone);\nconst phone = toE164(rawPhone);\nconst name = findQuestionValue(submission, ['שם', 'שם מלא', 'שם הלקוחה', 'name']) || clean(body.name);\nconst ratingRaw = findQuestionValue(submission, ['דירוג', 'rating', 'ציון']);\nconst rating = numericRating(ratingRaw);\nconst feedback = findQuestionValue(submission, ['פידבק', 'משוב', 'הערות', 'תגובה', 'feedback', 'comments']);\n\nconst customerGoogleMsg = GOOGLE_REVIEW_LINK\n  ? [\n      'איזה כיף שאהבת! 😍',\n      '',\n      'נשמח מאוד אם תפרגני לנו גם בגוגל:',\n      GOOGLE_REVIEW_LINK,\n      '',\n      'תודה רבה!',\n      'Yael Mavashev 🌸',\n    ].join('\\n')\n  : [\n      'איזה כיף שאהבת! 😍',\n      '',\n      'עדיין אין קישור Google Review מאושר ליעל.',\n      'אפשר לבקש חוות דעת במילים שלה בלי קישור עד שהקישור יאושר.',\n      '',\n      'Yael Mavashev 🌸',\n    ].join('\\n');\n\nconst googleForwardMsg = [\n  '📤 הודעת Google Review להעברה ללקוחה — Yael Mavashev',\n  '',\n  name ? 'שם: ' + name : '',\n  rawPhone ? 'טלפון לשליחה: ' + rawPhone : '',\n  phone ? 'טלפון מנורמל: +' + phone : '',\n  'דירוג Fillout: ' + rating,\n  feedback ? 'משוב: ' + feedback : '',\n  '',\n  '--- להעתקה ושליחה ללקוחה ---',\n  customerGoogleMsg,\n].filter(Boolean).join('\\n');\n\nconst highRatingOwnerMsg = [\n  '⭐ דירוג גבוה התקבל ב-Fillout — Yael Mavashev',\n  '',\n  id ? 'מזהה תור: ' + id : '',\n  name ? 'שם: ' + name : '',\n  rawPhone ? 'טלפון: ' + rawPhone : '',\n  'דירוג: ' + rating,\n  feedback ? 'משוב: ' + feedback : '',\n  '',\n  GOOGLE_REVIEW_LINK\n    ? 'אפשר לשלוח ללקוחה את הודעת Google Review שבהודעה הבאה.'\n    : 'אין עדיין קישור Google Review מאושר. לא הומצא קישור.',\n].filter(Boolean).join('\\n');\n\nconst lowRatingOwnerMsg = [\n  '⚠️ דירוג נמוך/בינוני התקבל ב-Fillout — Yael Mavashev',\n  '',\n  id ? 'מזהה תור: ' + id : '',\n  name ? 'שם: ' + name : '',\n  rawPhone ? 'טלפון: ' + rawPhone : '',\n  'דירוג: ' + rating,\n  feedback ? 'משוב: ' + feedback : '',\n  '',\n  'לא נשלח לינק לגוגל. מומלץ ליצור קשר אישי לפני בקשת ביקורת.',\n].filter(Boolean).join('\\n');\n\nreturn [{\n  json: {\n    id,\n    name,\n    rawPhone,\n    phone,\n    rating,\n    feedback,\n    ownerChatId: OWNER_CHAT_ID,\n    highRatingOwnerMsg,\n    lowRatingOwnerMsg,\n    googleForwardMsg,\n    customerGoogleMsg,\n    processedAt: new Date().toISOString(),\n  }\n}];"
+      },
+      "id": "yael-fb-parse",
+      "name": "3️⃣ Code: Parse Fillout Rating",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -208,
+        384
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{ $json.rating }}",
+              "operation": "largerEqual",
+              "value2": 4
+            }
+          ]
+        }
+      },
+      "id": "yael-fb-if",
+      "name": "3️⃣ IF: Rating >= 4?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        16,
+        384
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.ownerChatId }}",
+        "message": "={{ $json.highRatingOwnerMsg }}",
+        "options": {}
+      },
+      "id": "yael-fb-hi",
+      "name": "3️⃣ WhatsApp: ליעל - דירוג גבוה",
+      "type": "n8n-nodes-whatsapp-green-api.greenApi",
+      "typeVersion": 1,
+      "position": [
+        240,
+        288
+      ],
+      "credentials": {
+        "greenApi": {
+          "id": "Yt6E9F43cXq2ctMX",
+          "name": "Green account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $(\"3️⃣ Code: Parse Fillout Rating\").first().json.ownerChatId }}",
+        "message": "={{ $(\"3️⃣ Code: Parse Fillout Rating\").first().json.googleForwardMsg }}",
+        "options": {}
+      },
+      "id": "yael-fb-g",
+      "name": "3️⃣ WhatsApp: ליעל - Google להעברה",
+      "type": "n8n-nodes-whatsapp-green-api.greenApi",
+      "typeVersion": 1,
+      "position": [
+        464,
+        288
+      ],
+      "credentials": {
+        "greenApi": {
+          "id": "Yt6E9F43cXq2ctMX",
+          "name": "Green account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://yael.mavash.net/api/n8n/lifecycle",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Yael-N8n-Token",
+              "value": "={{ $vars.YAEL_N8N_TOKEN }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ id: $(\"3️⃣ Code: Parse Fillout Rating\").first().json.id, auditLog: \"google_review_requested\" }) }}",
+        "options": {}
+      },
+      "id": "yael-fb-hi-mark",
+      "name": "3️⃣ HTTP: Mark Google Requested",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        688,
+        288
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.ownerChatId }}",
+        "message": "={{ $json.lowRatingOwnerMsg }}",
+        "options": {}
+      },
+      "id": "yael-fb-lo",
+      "name": "3️⃣ WhatsApp: ליעל - דירוג נמוך",
+      "type": "n8n-nodes-whatsapp-green-api.greenApi",
+      "typeVersion": 1,
+      "position": [
+        240,
+        480
+      ],
+      "credentials": {
+        "greenApi": {
+          "id": "Yt6E9F43cXq2ctMX",
+          "name": "Green account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://yael.mavash.net/api/n8n/lifecycle",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Yael-N8n-Token",
+              "value": "={{ $vars.YAEL_N8N_TOKEN }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ id: $(\"3️⃣ Code: Parse Fillout Rating\").first().json.id, auditLog: \"low_rating_received\" }) }}",
+        "options": {}
+      },
+      "id": "yael-fb-lo-mark",
+      "name": "3️⃣ HTTP: Mark Low Rating",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        464,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 * * * *"
+            }
+          ]
+        }
+      },
+      "id": "yael-arc-sched",
+      "name": "🟣 Schedule: ארכיון — כל שעה",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [
+        -432,
+        704
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://yael.mavash.net/api/n8n/appointments",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Yael-N8n-Token",
+              "value": "={{ $vars.YAEL_N8N_TOKEN }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "yael-arc-http",
+      "name": "🟣1️⃣ HTTP: קריאת תורים",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -208,
+        704
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const payload = $json.appointments ?? $json.body?.appointments ?? $json.data ?? $json;\nconst rows = Array.isArray(payload) ? payload : [];\nreturn rows.filter((row) => row && (row.id || row.ID)).map((row) => ({ json: row }));"
+      },
+      "id": "yael-arc-split",
+      "name": "🟣1️⃣ Split Appointments",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -96,
+        704
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "function clean(value) {\n  return String(value == null ? '' : value).replace(/\\s+/g, ' ').trim();\n}\n\nfunction pick(row, ...keys) {\n  for (const key of keys) {\n    const value = row[key];\n    if (value !== undefined && value !== null && clean(value) !== '') return clean(value);\n  }\n  return '';\n}\n\nfunction toE164(phone) {\n  let p = String(phone || '').replace(/\\D/g, '');\n  if (!p) return '';\n  if (p.startsWith('972')) return p;\n  if (p.startsWith('0')) return '972' + p.slice(1);\n  if (p.length === 9 && /^5/.test(p)) return '972' + p;\n  return p;\n}\n\nfunction parseDate(raw) {\n  if (raw == null || raw === '') return null;\n  if (raw instanceof Date && !isNaN(raw.getTime())) return raw;\n  if (typeof raw === 'number' && raw > 0) return new Date((raw - 25569) * 86400 * 1000);\n  const s = clean(raw);\n  if (!s) return null;\n  let m = s.match(/^(\\d{4})-(\\d{1,2})-(\\d{1,2})/);\n  if (m) return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));\n  m = s.match(/^(\\d{1,2})[./-](\\d{1,2})[./-](\\d{4})/);\n  if (m) {\n    const first = Number(m[1]);\n    const second = Number(m[2]);\n    const day = first > 12 ? first : second;\n    const month = first > 12 ? second : first;\n    return new Date(Number(m[3]), month - 1, day);\n  }\n  const d = new Date(s);\n  return isNaN(d.getTime()) ? null : d;\n}\n\nfunction formatDate(d) {\n  if (!d || isNaN(d.getTime())) return '';\n  return d.toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit', year: 'numeric' });\n}\n\nfunction statusIsDone(status) {\n  return clean(status) === 'בוצע';\n}\n\nconst customerMap = {};\nfor (const item of $input.all()) {\n  const appt = item.json || {};\n  const rawName = pick(appt, 'שם הלקוחה', 'שם');\n  const rawPhone = pick(appt, 'טלפון', 'פלאפון', 'נייד');\n  const phone = toE164(rawPhone);\n  const apptDate = parseDate(appt['תאריך'] ?? appt.Date);\n  const service = pick(appt, 'שירות', 'טיפול');\n  const status = pick(appt, 'סטאטוס', 'סטטוס', 'מצב');\n  const folder = pick(appt, 'Customer_Folder_URL');\n  if (!phone || !rawName) continue;\n  if (!customerMap[phone]) {\n    customerMap[phone] = {\n      phone, name: rawName, first_visit: apptDate, last_visit: apptDate,\n      latest_name_date: apptDate, total_visits: 0, completed_visits: 0,\n      services: [], folder_url: folder,\n    };\n  }\n  const c = customerMap[phone];\n  c.total_visits += 1;\n  if (statusIsDone(status)) c.completed_visits += 1;\n  if (service && !c.services.includes(service)) c.services.push(service);\n  if (folder && !c.folder_url) c.folder_url = folder;\n  if (apptDate) {\n    if (!c.first_visit || apptDate < c.first_visit) c.first_visit = apptDate;\n    if (!c.last_visit || apptDate > c.last_visit) c.last_visit = apptDate;\n    if (rawName && (!c.latest_name_date || apptDate >= c.latest_name_date)) {\n      c.name = rawName;\n      c.latest_name_date = apptDate;\n    }\n  } else if (rawName && !c.name) {\n    c.name = rawName;\n  }\n}\n\nreturn Object.values(customerMap)\n  .sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'he'))\n  .map((c) => ({\n    json: {\n      phone: c.phone,\n      name: c.name,\n      first_visit: formatDate(c.first_visit),\n      last_visit: formatDate(c.last_visit),\n      total_visits: String(c.total_visits),\n      completed_visits: String(c.completed_visits),\n      services_history: c.services.join(', '),\n      is_returning: c.total_visits > 1 ? 'כן' : 'לא',\n      folder_url: c.folder_url || '',\n    },\n  }));"
+      },
+      "id": "yael-arc-code",
+      "name": "🟣2️⃣ Code: בניית ארכיון Customers",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        16,
+        704
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://yael.mavash.net/api/n8n/customers",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Yael-N8n-Token",
+              "value": "={{ $vars.YAEL_N8N_TOKEN }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\"phone\": \"={{ $json.phone }}\", \"name\": \"={{ $json.name }}\", \"first_visit\": \"={{ $json.first_visit }}\", \"last_visit\": \"={{ $json.last_visit }}\", \"total_visits\": \"={{ $json.total_visits }}\", \"completed_visits\": \"={{ $json.completed_visits }}\", \"services_history\": \"={{ $json.services_history }}\", \"is_returning\": \"={{ $json.is_returning }}\", \"folder_url\": \"={{ $json.folder_url }}\"}",
+        "options": {}
+      },
+      "id": "yael-arc-up",
+      "name": "🟣3️⃣ HTTP: Upsert Customers",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        240,
+        704
+      ]
+    }
+  ],
+  "connections": {
+    "Schedule: כל דקה": {
+      "main": [
+        [
+          {
+            "node": "1️⃣ HTTP: קריאת תורים",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "1️⃣ HTTP: קריאת תורים": {
+      "main": [
+        [
+          {
+            "node": "1️⃣ Split Appointments",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "1️⃣ Split Appointments": {
+      "main": [
+        [
+          {
+            "node": "2️⃣ Code: Normalize Messages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "2️⃣ Code: Normalize Messages": {
+      "main": [
+        [
+          {
+            "node": "3️⃣ IF: Valid + New?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "3️⃣ IF: Valid + New?": {
+      "main": [
+        [
+          {
+            "node": "4️⃣ WhatsApp: ליעל - פרטי תור",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "4️⃣ WhatsApp: ליעל - פרטי תור": {
+      "main": [
+        [
+          {
+            "node": "5️⃣ WhatsApp: ליעל - הודעה להעברה ללקוחה",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "5️⃣ WhatsApp: ליעל - הודעה להעברה ללקוחה": {
+      "main": [
+        [
+          {
+            "node": "6️⃣ HTTP: Mark Sent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🟠 Schedule: תזכורת — כל בוקר 9:00": {
+      "main": [
+        [
+          {
+            "node": "🟠1️⃣ HTTP: קריאת תורים",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🟠1️⃣ HTTP: קריאת תורים": {
+      "main": [
+        [
+          {
+            "node": "🟠1️⃣ Split Appointments",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🟠1️⃣ Split Appointments": {
+      "main": [
+        [
+          {
+            "node": "🟠2️⃣ Code: סינון + שתי הודעות ליעל",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🟠2️⃣ Code: סינון + שתי הודעות ליעל": {
+      "main": [
+        [
+          {
+            "node": "🟠3️⃣ WhatsApp: ליעל - פרטי תזכורת",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🟠3️⃣ WhatsApp: ליעל - פרטי תזכורת": {
+      "main": [
+        [
+          {
+            "node": "🟠4️⃣ WhatsApp: ליעל - הודעה להעברה ללקוחה",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🟠4️⃣ WhatsApp: ליעל - הודעה להעברה ללקוחה": {
+      "main": [
+        [
+          {
+            "node": "🟠5️⃣ HTTP: Mark Reminder Sent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "3️⃣ Schedule: סקר Fillout — כל 5 דקות": {
+      "main": [
+        [
+          {
+            "node": "3️⃣1️⃣ HTTP: קריאת תורים",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "3️⃣1️⃣ HTTP: קריאת תורים": {
+      "main": [
+        [
+          {
+            "node": "3️⃣1️⃣ Split Appointments",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "3️⃣1️⃣ Split Appointments": {
+      "main": [
+        [
+          {
+            "node": "3️⃣2️⃣ Code: מציאת טיפולים שבוצעו",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "3️⃣2️⃣ Code: מציאת טיפולים שבוצעו": {
+      "main": [
+        [
+          {
+            "node": "3️⃣3️⃣ WhatsApp: ליעל - טיפול בוצע",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "3️⃣3️⃣ WhatsApp: ליעל - טיפול בוצע": {
+      "main": [
+        [
+          {
+            "node": "3️⃣4️⃣ WhatsApp: ליעל - סקר להעברה",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "3️⃣4️⃣ WhatsApp: ליעל - סקר להעברה": {
+      "main": [
+        [
+          {
+            "node": "3️⃣5️⃣ HTTP: Mark Fillout Sent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "3️⃣ Webhook: Fillout Feedback": {
+      "main": [
+        [
+          {
+            "node": "3️⃣ Code: Parse Fillout Rating",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "3️⃣ Code: Parse Fillout Rating": {
+      "main": [
+        [
+          {
+            "node": "3️⃣ IF: Rating >= 4?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "3️⃣ IF: Rating >= 4?": {
+      "main": [
+        [
+          {
+            "node": "3️⃣ WhatsApp: ליעל - דירוג גבוה",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "3️⃣ WhatsApp: ליעל - דירוג נמוך",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "3️⃣ WhatsApp: ליעל - דירוג גבוה": {
+      "main": [
+        [
+          {
+            "node": "3️⃣ WhatsApp: ליעל - Google להעברה",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "3️⃣ WhatsApp: ליעל - Google להעברה": {
+      "main": [
+        [
+          {
+            "node": "3️⃣ HTTP: Mark Google Requested",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "3️⃣ WhatsApp: ליעל - דירוג נמוך": {
+      "main": [
+        [
+          {
+            "node": "3️⃣ HTTP: Mark Low Rating",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🟣 Schedule: ארכיון — כל שעה": {
+      "main": [
+        [
+          {
+            "node": "🟣1️⃣ HTTP: קריאת תורים",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🟣1️⃣ HTTP: קריאת תורים": {
+      "main": [
+        [
+          {
+            "node": "🟣1️⃣ Split Appointments",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🟣1️⃣ Split Appointments": {
+      "main": [
+        [
+          {
+            "node": "🟣2️⃣ Code: בניית ארכיון Customers",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🟣2️⃣ Code: בניית ארכיון Customers": {
+      "main": [
+        [
+          {
+            "node": "🟣3️⃣ HTTP: Upsert Customers",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Jerusalem"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true
+  }
+}
