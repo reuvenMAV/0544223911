@@ -1,6 +1,6 @@
 # Yael booking lifecycle automation
 
-The Haya/Forever n8n JSON was **not** imported, activated, or pointed at Haya’s sheet. A Yael-only clone lives in this repo and on `newsite.mavash.net` as an **unpublished** Personal workflow named `Yael Mavashev — תורים`.
+The Haya/Forever n8n JSON was **not** imported, activated, or pointed at Haya’s sheet. A Yael-only clone lives in this repo (JSON stays `active: false`) and is **published** on `newsite.mavash.net` as Personal workflow `Yael Mavashev — תורים` (`YaelBookLifeCycle01`).
 
 ## Why not copy the Haya workflow as-is
 
@@ -29,7 +29,7 @@ App WhatsApp/email in `server/notifications.ts` stays `enabled: false`. This n8n
 - Owner WhatsApp for this workflow (user-confirmed): `054-806-0140` / `972548060140@c.us`
 - Area: `אשקלון, שכונת נווה הדרים` (exact street is still gated on the site)
 - Waze: neighborhood search URL already used on `yael.mavash.net`
-- Site: `https://yael.mavash.net/` still shows `054-808-0140` in `yaelContact.ts`. This workflow no longer uses that number. The public site was not changed.
+- Site: `https://yael.mavash.net/` public contact is `054-806-0140`.
 - Survey form is native on Yael: `https://yael.mavash.net/survey` (Fillout cannot create forms via API).
 - Studio login: `https://yael.mavash.net/admin` with `YAEL_ADMIN_PASSWORD` (not committed).
 
@@ -39,14 +39,12 @@ App WhatsApp/email in `server/notifications.ts` stays `enabled: false`. This n8n
 - `n8n/validate-yael-booking-lifecycle.mjs` — asserts no Haya ids
 - `yael-n8n/` — Postgres lifecycle tables, HTTP API, tests, Oracle apply script
 
-## Blocked before Publish
+## Still open after Publish
 
-1. Create a Yael Fillout form in the Fillout UI (rating + optional feedback; hidden URL params `id`, `phone`, `name`). Webhook to `https://newsite.mavash.net/webhook/yael-review-rating` **after** Publish. Paste the public `forms.fillout.com` URL into the survey Code node.
-2. Confirm Green **biz140** sends from a number that can message `972548060140`.
-3. Add an approved Yael Google review URL (do not invent).
-4. Decide whether the public site should also change from `054-808-0140` to `054-806-0140`.
-5. Do **not** publish until those are confirmed. Do not execute the workflow against real customers.
-6. `YAEL_N8N_TOKEN` is already set on newsite and in `yael.env`.
+1. Confirm Green **biz140** actually delivers to `054-806-0140` (first real booking will prove it).
+2. Add an approved Yael Google review URL (do not invent). `GOOGLE_REVIEW_LINK` is still empty.
+3. Native survey is `https://yael.mavash.net/survey`. The n8n rating webhook is `https://newsite.mavash.net/webhook/yael-review-rating` (Fillout-shaped payload). The public survey posts to `/api/survey`, not to that webhook.
+4. `YAEL_N8N_TOKEN` is already set on newsite and in `yael.env`.
 
 ## Oracle apply (this run)
 
@@ -56,10 +54,19 @@ App WhatsApp/email in `server/notifications.ts` stays `enabled: false`. This n8n
 - `GET /api/n8n/appointments` → 401 without token; 200 `{"appointments":[]}` with token.
 - Vitest: 21 passed (includes 5 new lifecycle helper tests).
 - `SMOKE_BASE_URL=https://yael.mavash.net pnpm smoke` passed, including `n8n appointments require token`.
-- n8n-newsite Personal workflow `Yael Mavashev — תורים` id `YaelBookLifeCycle01` imported with **active=false**. No webhook row registered (inactive). Haya archive workflow remains inactive and was not edited.
+- n8n-newsite Personal workflow `Yael Mavashev — תורים` id `YaelBookLifeCycle01` imported with **active=false**, then published after user approval.
 - Isolation curl: `booking.mavash.net`, `newsite.mavash.net`, `n8n.mavash.net`, `yael.mavash.net` all 200.
 - Native survey `https://yael.mavash.net/survey` and studio admin `https://yael.mavash.net/admin` return 200. Studio password login works (cookie `yael_studio`). A verification survey POST returned 200 and the test row was deleted.
-- n8n workflow still **inactive**, now points at `/survey` and `972548060140@c.us`.
+
+## Publish (user approved)
+
+- Guarded SQL: `yael-n8n/scripts/publish-yael-workflow.sql` + `publish-yael-workflow.sh`.
+- `workflow_history` + `activeVersionId` + `triggerCount=6` + webhook `POST /webhook/yael-review-rating`.
+- Targeted restart of **`n8n-newsite` only**. `/healthz` recovered; `yael` / `booking` / `n8n.mavash.net` stayed 200.
+- After publish: `YaelBookLifeCycle01` **active=true**. Minute poller ran three times (`success`, ~150ms) with **0 appointments** — no lifecycle writes, no Green send.
+- One accidental empty webhook POST hit `3️⃣ Code: Parse Fillout Rating` and **errored before WhatsApp**.
+- Haya archive `חיה - ארכיון Customers...` still inactive. Rating workflow `MuPngG4_mD4gT75l3h5ka` still active and untouched.
+- Repo JSON remains `active: false` so a re-import cannot republish by accident.
 
 ## Isolation
 
