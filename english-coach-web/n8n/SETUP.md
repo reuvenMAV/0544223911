@@ -4,9 +4,25 @@
 
 Wire the Next.js app (`COACH_BACKEND=n8n`) to an n8n webhook that runs Xiaomi MiMo and persists progress in Supabase.
 
+## Quick deploy (CLI)
+
+```bash
+# 1) Activate workflow on n8n (needs API key from n8n Settings → API)
+N8N_API_KEY=... node scripts/deploy-n8n-workflow.mjs
+
+# 2) Apply Supabase migrations (needs DB connection URI)
+SUPABASE_DB_URL='postgresql://...' node scripts/apply-supabase-migrations.mjs
+
+# 3) Sync env to Vercel + switch backend when n8n webhook returns 200
+SUPABASE_URL=... SUPABASE_SERVICE_ROLE_KEY=... \
+N8N_WEBHOOK_SECRET=... N8N_WEBHOOK_URL=https://dev.n8n.mavash.net/webhook/english-coach-chat \
+SWITCH_TO_N8N=1 ./scripts/sync-vercel-env.sh
+cd .. && npx vercel --prod --yes
+```
+
 ## Steps
 
-1. Import `english-coach-chat.workflow.json` into n8n.
+1. Import `english-coach-chat.workflow.json` into n8n (or use `scripts/deploy-n8n-workflow.mjs`).
 2. Create credential **Xiaomi MiMo**:
    - Type: OpenAI-compatible / Header Auth with `Authorization: Bearer <key>`
    - Base URL: `https://api.xiaomimimo.com/v1`
