@@ -30,7 +30,8 @@ App WhatsApp/email in `server/notifications.ts` stays `enabled: false`. This n8n
 - Area: `אשקלון, שכונת נווה הדרים` (exact street is still gated on the site)
 - Waze: neighborhood search URL already used on `yael.mavash.net`
 - Site: `https://yael.mavash.net/` still shows `054-808-0140` in `yaelContact.ts`. This workflow no longer uses that number. The public site was not changed.
-- Fillout form: **not created**. Fillout’s API can list forms / read submissions; it cannot create a new form. `FILLOUT_FORM_URL` stays empty, so the survey lane is a no-op.
+- Survey form is native on Yael: `https://yael.mavash.net/survey` (Fillout cannot create forms via API).
+- Studio login: `https://yael.mavash.net/admin` with `YAEL_ADMIN_PASSWORD` (not committed).
 
 ## Repo files
 
@@ -57,6 +58,8 @@ App WhatsApp/email in `server/notifications.ts` stays `enabled: false`. This n8n
 - `SMOKE_BASE_URL=https://yael.mavash.net pnpm smoke` passed, including `n8n appointments require token`.
 - n8n-newsite Personal workflow `Yael Mavashev — תורים` id `YaelBookLifeCycle01` imported with **active=false**. No webhook row registered (inactive). Haya archive workflow remains inactive and was not edited.
 - Isolation curl: `booking.mavash.net`, `newsite.mavash.net`, `n8n.mavash.net`, `yael.mavash.net` all 200.
+- Native survey `https://yael.mavash.net/survey` and studio admin `https://yael.mavash.net/admin` return 200. Studio password login works (cookie `yael_studio`). A verification survey POST returned 200 and the test row was deleted.
+- n8n workflow still **inactive**, now points at `/survey` and `972548060140@c.us`.
 
 ## Isolation
 
