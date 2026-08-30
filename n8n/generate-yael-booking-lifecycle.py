@@ -22,7 +22,7 @@ return rows.filter((row) => row && (row.id || row.ID)).map((row) => ({ json: row
 """.strip()
 
 NORMALIZE_NEW = r"""
-const OWNER_CHAT_ID = '972544223911@c.us';
+const OWNER_CHAT_ID = '972548060140@c.us';
 const SALON_NAME = 'Yael Mavashev — פדיקור ומניקור';
 const SALON_ADDRESS = 'אשקלון, שכונת נווה הדרים';
 const WAZE_URL = 'https://www.waze.com/ul?q=%D7%A9%D7%9B%D7%95%D7%A0%D7%AA%20%D7%A0%D7%95%D7%95%D7%94%20%D7%94%D7%93%D7%A8%D7%99%D7%9D%20%D7%90%D7%A9%D7%A7%D7%9C%D7%95%D7%9F&navigate=yes';
@@ -117,7 +117,7 @@ const customerMsg = [
   WAZE_URL,
   '',
   'לקביעת תור נוסף: https://yael.mavash.net/',
-  'טלפון: 054-808-0140',
+  'טלפון: 054-806-0140',
   '',
   'נתראה! 💅',
   'Yael Mavashev',
@@ -156,7 +156,7 @@ return {
 """.strip()
 
 REMINDER_FILTER = r"""
-const OWNER_CHAT_ID = '972544223911@c.us';
+const OWNER_CHAT_ID = '972548060140@c.us';
 const SALON_NAME = 'Yael Mavashev — פדיקור ומניקור';
 const SALON_ADDRESS = 'אשקלון, שכונת נווה הדרים';
 const WAZE_URL = 'https://www.waze.com/ul?q=%D7%A9%D7%9B%D7%95%D7%A0%D7%AA%20%D7%A0%D7%95%D7%95%D7%94%20%D7%94%D7%93%D7%A8%D7%99%D7%9D%20%D7%90%D7%A9%D7%A7%D7%9C%D7%95%D7%9F&navigate=yes';
@@ -258,7 +258,7 @@ for (const item of $input.all()) {
     '📍 ' + SALON_ADDRESS,
     '🗺 Waze: ' + WAZE_URL,
     '',
-    'לביטול או שינוי תור — שלחי הודעה או התקשרי 054-808-0140 🙏',
+    'לביטול או שינוי תור — שלחי הודעה או התקשרי 054-806-0140 🙏',
     'Yael Mavashev 🌸',
   ].join('\n');
 
@@ -309,7 +309,7 @@ return out;
 """.strip()
 
 SURVEY_FILTER = r"""
-const OWNER_CHAT_ID = '972544223911@c.us';
+const OWNER_CHAT_ID = '972548060140@c.us';
 const SALON_NAME = 'Yael Mavashev — פדיקור ומניקור';
 const FILLOUT_FORM_URL = '';
 
@@ -434,7 +434,7 @@ return out;
 """.strip()
 
 PARSE_FILLOUT = r"""
-const OWNER_CHAT_ID = '972544223911@c.us';
+const OWNER_CHAT_ID = '972548060140@c.us';
 const GOOGLE_REVIEW_LINK = '';
 
 function clean(value) {

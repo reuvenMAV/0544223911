@@ -8,7 +8,7 @@ The Haya/Forever n8n JSON was **not** imported, activated, or pointed at Haya’
 |---|---|
 | Google Sheet `Smart Booking — תורים` | Postgres `yael_booking_appointments` via `https://yael.mavash.net/api/n8n/*` |
 | Credential `Google Sheets חיה` | No Sheets nodes |
-| Green **642** | Green **biz140** (matches 054-808-0140) |
+| Green **642** | Green **biz140** (suffix 140; Yael number is now 054-806-0140) |
 | שלהבת חיה / הנביאים 45 / Haya Waze / Haya Google review | Yael Mavashev, אשקלון · נווה הדרים, Yael Waze search, **no invented Google review URL** |
 | Owner labels `לחיה` | `ליעל` |
 | Webhook `review-rating1` | `yael-review-rating` |
@@ -23,14 +23,14 @@ App WhatsApp/email in `server/notifications.ts` stays `enabled: false`. This n8n
 4. `POST /webhook/yael-review-rating`: rating ≥ 4 → Google-review forward text (placeholder until a Yael `g.page` link is approved); else low-rating note.
 5. Hourly: rebuild customer archive into `yael_n8n_customers` (not Haya’s Customers tab).
 
-## Confirmed Yael copy (from the live site / `yaelContact.ts`)
+## Confirmed Yael copy
 
 - Brand: `Yael Mavashev — פדיקור ומניקור`
-- Phone / WhatsApp: `054-808-0140` / `972548080140`
+- Owner WhatsApp for this workflow (user-confirmed): `054-806-0140` / `972548060140@c.us`
 - Area: `אשקלון, שכונת נווה הדרים` (exact street is still gated on the site)
 - Waze: neighborhood search URL already used on `yael.mavash.net`
-- Site: `https://yael.mavash.net/`
-- Operator chat id kept from the source workflow: `972544223911@c.us` (Reuven). Not invented. Can be switched to Yael’s `972548080140@c.us` later.
+- Site: `https://yael.mavash.net/` still shows `054-808-0140` in `yaelContact.ts`. This workflow no longer uses that number. The public site was not changed.
+- Fillout form: **not created**. Fillout’s API can list forms / read submissions; it cannot create a new form. `FILLOUT_FORM_URL` stays empty, so the survey lane is a no-op.
 
 ## Repo files
 
@@ -40,11 +40,12 @@ App WhatsApp/email in `server/notifications.ts` stays `enabled: false`. This n8n
 
 ## Blocked before Publish
 
-1. Set n8n variable `YAEL_N8N_TOKEN` on **newsite** to the same value as `/home/ubuntu/yael/secrets/yael.env` (never commit it).
-2. Confirm Green **biz140** is Yael’s WhatsApp and not another business.
-3. Add an approved Yael Fillout public URL in the survey Code node.
-4. Add an approved Yael Google review URL (do not invent).
+1. Create a Yael Fillout form in the Fillout UI (rating + optional feedback; hidden URL params `id`, `phone`, `name`). Webhook to `https://newsite.mavash.net/webhook/yael-review-rating` **after** Publish. Paste the public `forms.fillout.com` URL into the survey Code node.
+2. Confirm Green **biz140** sends from a number that can message `972548060140`.
+3. Add an approved Yael Google review URL (do not invent).
+4. Decide whether the public site should also change from `054-808-0140` to `054-806-0140`.
 5. Do **not** publish until those are confirmed. Do not execute the workflow against real customers.
+6. `YAEL_N8N_TOKEN` is already set on newsite and in `yael.env`.
 
 ## Oracle apply (this run)
 
