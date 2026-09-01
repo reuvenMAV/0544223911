@@ -15,10 +15,22 @@ BASE = os.environ.get("N8N_BASE_URL", "https://n8n.mavash.net").rstrip("/")
 API_KEY = os.environ.get("N8N_API_KEY", "")
 ACTIVATE = os.environ.get("N8N_ACTIVATE", "true").lower() in ("1", "true", "yes")
 
-NOTION_CRED_ID = os.environ.get("NOTION_N8N_CRED_ID", "zngixlj5fHQOsAjz")
-NOTION_CRED_NAME = os.environ.get("NOTION_N8N_CRED_NAME", "Notion mavash")
-TASKS_DB_ID = os.environ.get("NOTION_TASKS_DB_ID", "e40707d9-b4e5-490b-93dd-008b852ef677")
-TASKS_DB_NAME = os.environ.get("NOTION_TASKS_DB_NAME", "✅ Tasks")
+NOTION_CRED_ID = os.environ.get(
+    "NOTION_N8N_CRED_ID",
+    "KfWZ3dSGOqfFZ3kA" if "dev.n8n" in BASE else "zngixlj5fHQOsAjz",
+)
+NOTION_CRED_NAME = os.environ.get(
+    "NOTION_N8N_CRED_NAME",
+    "Notion mavash (briefing)" if "dev.n8n" in BASE else "Notion mavash",
+)
+TASKS_DB_ID = os.environ.get(
+    "NOTION_TASKS_DB_ID",
+    "347b9262-5f3c-4989-b3b2-4d6aa8cb77d5" if "dev.n8n" in BASE else "e40707d9-b4e5-490b-93dd-008b852ef677",
+)
+TASKS_DB_NAME = os.environ.get(
+    "NOTION_TASKS_DB_NAME",
+    "🎯 מעקב תזכורות יומיות" if "dev.n8n" in BASE else "✅ Tasks",
+)
 
 GREEN_CRED_ID = os.environ.get(
     "GREEN_API_CRED_ID",
@@ -45,10 +57,18 @@ WHATSAPP_NODE_TYPE = os.environ.get(
 
 PARSE_CODE = r"""// Parse all sources and build morning briefing
 const WMO = {0:'בהיר',1:'בהיר חלקית',2:'בהיר חלקית',3:'בהיר חלקית',45:'ערפל',48:'ערפל',51:'טפטוף',53:'טפטוף',55:'טפטוף',61:'גשם',63:'גשם',65:'גשם',71:'שלג',73:'שלג',75:'שלג',80:'גשם לפרקים',81:'גשם לפרקים',82:'גשם לפרקים',95:'סופה'};
-const DONE = new Set(['done', 'blocked', 'cancelled', 'הושלם', 'סיום', 'בוטל']);
+const DONE = new Set(['done', 'blocked', 'cancelled', 'completed', 'הושלם', 'סיום', 'בוטל', 'נשלח']);
 
 function notionVal(item, ...names) {
   const j = item.json || {};
+  for (const wanted of names) {
+    const simpKey = `property_${wanted.toLowerCase().replace(/ /g, '_')}`;
+    if (j[simpKey] !== undefined && j[simpKey] !== null && j[simpKey] !== '') {
+      const v = j[simpKey];
+      if (typeof v === 'object' && v?.start) return v.start;
+      return String(v);
+    }
+  }
   const props = j.properties || j;
   for (const wanted of names) {
     const key = Object.keys(props).find((k) => k.toLowerCase() === wanted.toLowerCase());
@@ -60,10 +80,17 @@ function notionVal(item, ...names) {
       if (v?.status) return v.status.name || '';
       if (v?.date) return v.date.start || '';
     }
-    const simp = j[`property_${wanted.toLowerCase().replace(/ /g, '_')}`];
-    if (simp !== undefined && simp !== null) return String(simp);
   }
-  return j.name || '';
+  if (names.includes('Name') || names.includes('name')) return j.name || '';
+  return '';
+}
+
+function notionTitle(item) {
+  const notes = notionVal(item, 'Notes', 'notes');
+  const title = notionVal(item, 'name', 'Name', 'Task name', 'title', 'שם המטלה', 'נושא');
+  if (title) return title;
+  if (!notes) return '';
+  return notes.split('\n')[0].replace(/^🎯\s*/, '').trim().slice(0, 100);
 }
 
 const now = new Date();
@@ -124,17 +151,18 @@ try {
     noSection = 'אין משימות במסד Notion';
   } else {
     const tasks = notionItems.map((item) => {
-      const title = notionVal(item, 'Name', 'Task name', 'title') || '?';
+      const title = notionTitle(item);
       const status = (notionVal(item, 'Status', 'status') || '').trim();
-      const dueRaw = notionVal(item, 'Due Date', 'Due date', 'due') || '';
+      const dueRaw = notionVal(item, 'Due Date', 'due_date', 'Date', 'date', 'מועד הגשה', 'due') || '';
       const due = dueRaw.slice(0, 10);
-      const priority = notionVal(item, 'Priority', 'priority');
+      const priority = notionVal(item, 'Priority', 'priority', 'Category', 'category', 'קטגוריה', 'Type', 'type');
       return { title, status, due, priority };
     }).filter((t) => {
-      if (!t.due) return false;
-      if (t.due > todayIso) return false;
+      if (!t.title) return false;
       const s = t.status.toLowerCase();
-      return !DONE.has(s) && s !== 'done';
+      if (DONE.has(s) || s === 'done') return false;
+      if (!t.due) return true;
+      return t.due <= todayIso;
     }).slice(0, 8);
 
     if (!tasks.length) {
@@ -258,6 +286,7 @@ def build_workflow() -> dict:
             "type": "n8n-nodes-base.notion",
             "typeVersion": 2.2,
             "position": [280, 360],
+            "onError": "continueRegularOutput",
             "credentials": {
                 "notionApi": {"id": NOTION_CRED_ID, "name": NOTION_CRED_NAME}
             },
@@ -341,6 +370,7 @@ def patch_existing(wf: dict) -> None:
         if node["name"] == "Notion Tasks Today":
             node["parameters"]["databaseId"] = tasks_db_ref
             node["credentials"] = cred
+            node["onError"] = "continueRegularOutput"
         elif node["name"] == "Parse & Build":
             node["parameters"]["jsCode"] = PARSE_CODE
         elif node["name"] == "WhatsApp Send":
