@@ -1,17 +1,14 @@
 #!/usr/bin/env python3
-"""Fix n8n workflow qzdNnmEvRGSPVJSX — set Status on NEW — Notion Reserve Topic."""
+"""Fix Notion Status fields on workflow qzdNnmEvRGSPVJSX (status vs select type)."""
 
 from __future__ import annotations
 
 import json
 import os
-import sys
 import urllib.error
 import urllib.request
 
 WORKFLOW_ID = os.environ.get("N8N_WORKFLOW_ID", "qzdNnmEvRGSPVJSX")
-NODE_NAME = os.environ.get("N8N_NOTION_NODE_NAME", "NEW — Notion Reserve Topic")
-STATUS_VALUE = os.environ.get("NOTION_STATUS_VALUE", "Reserved")
 BASE = os.environ.get("N8N_BASE_URL", "https://n8n.mavash.net").rstrip("/")
 API_KEY = os.environ.get("N8N_API_KEY", "")
 
@@ -39,45 +36,45 @@ def api(method: str, path: str, body: dict | None = None) -> dict:
         raise SystemExit(f"{method} {path} -> HTTP {exc.code}: {detail[:500]}") from exc
 
 
-def patch_status_property(props: list[dict]) -> list[dict]:
-    """Ensure Status property has statusValue set (Notion v2 node)."""
-    updated = False
-    for prop in props:
-        key = str(prop.get("key", ""))
-        if key == "Status" or key.endswith("|status") or key.lower().endswith("status"):
-            prop["statusValue"] = STATUS_VALUE
-            updated = True
-    if not updated:
-        props.append({"key": "Status|status", "statusValue": STATUS_VALUE})
-    return props
-
-
-def main() -> None:
-    wf = api("GET", f"/workflows/{WORKFLOW_ID}")
-    nodes = wf.get("nodes", [])
-    target = next((n for n in nodes if n.get("name") == NODE_NAME), None)
-    if not target:
-        names = [n.get("name") for n in nodes]
-        raise SystemExit(f"Node not found: {NODE_NAME!r}. Available: {names}")
-
-    params = target.setdefault("parameters", {})
-    props = params.get("propertiesUi", {}).get("propertyValues", [])
-    if not isinstance(props, list):
-        props = []
-    params.setdefault("propertiesUi", {})["propertyValues"] = patch_status_property(props)
-
-    # n8n public API accepts a subset of workflow fields on PUT
+def put_workflow(wf: dict) -> dict:
+    settings = wf.get("settings") or {}
+    allowed = {k: settings[k] for k in ("executionOrder",) if k in settings}
     payload = {
         "name": wf["name"],
         "nodes": wf["nodes"],
         "connections": wf["connections"],
-        "settings": wf.get("settings", {}),
+        "settings": allowed or {"executionOrder": "v1"},
     }
-    if wf.get("staticData") is not None:
-        payload["staticData"] = wf["staticData"]
+    return api("PUT", f"/workflows/{WORKFLOW_ID}", payload)
 
-    api("PUT", f"/workflows/{WORKFLOW_ID}", payload)
-    print(f"OK: {NODE_NAME} -> Status = {STATUS_VALUE!r}")
+
+def patch_nodes(wf: dict) -> None:
+    for node in wf.get("nodes", []):
+        name = node.get("name", "")
+        props = node.get("parameters", {}).get("propertiesUi", {}).get("propertyValues")
+        if not isinstance(props, list):
+            continue
+        if name == "NEW — Notion Reserve Topic":
+            node["parameters"]["propertiesUi"]["propertyValues"] = [
+                {"key": "Status", "statusValue": "Reserved"},
+                {"key": "Reserved At", "dateValue": "={{ $json.reservedAt }}"},
+            ]
+        elif name == "NEW — Notion Mark Used":
+            node["parameters"]["propertiesUi"]["propertyValues"] = [
+                {"key": "Status", "statusValue": "Used"},
+                {"key": "Last Used", "dateValue": "={{ $now.toISO() }}"},
+                {
+                    "key": "Times Used",
+                    "numberValue": "={{($json.timesUsed || 0) + 1}}",
+                },
+            ]
+
+
+def main() -> None:
+    wf = api("GET", f"/workflows/{WORKFLOW_ID}")
+    patch_nodes(wf)
+    put_workflow(wf)
+    print("OK: patched NEW — Notion Reserve Topic + NEW — Notion Mark Used")
     print(f"Workflow: {BASE}/workflow/{WORKFLOW_ID}")
 
 
