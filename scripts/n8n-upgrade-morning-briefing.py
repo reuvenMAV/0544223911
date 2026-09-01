@@ -55,9 +55,13 @@ WHATSAPP_NODE_TYPE = os.environ.get(
     else "@green-api/n8n-nodes-whatsapp-greenapi.greenapi",
 )
 
-PARSE_CODE = r"""// Parse all sources and build morning briefing
-const WMO = {0:'בהיר',1:'בהיר חלקית',2:'בהיר חלקית',3:'בהיר חלקית',45:'ערפל',48:'ערפל',51:'טפטוף',53:'טפטוף',55:'טפטוף',61:'גשם',63:'גשם',65:'גשם',71:'שלג',73:'שלג',75:'שלג',80:'גשם לפרקים',81:'גשם לפרקים',82:'גשם לפרקים',95:'סופה'};
-const DONE = new Set(['done', 'blocked', 'cancelled', 'completed', 'הושלם', 'סיום', 'בוטל', 'נשלח']);
+PARSE_CODE = r"""// ☀️ Morning Briefing — pretty WhatsApp edition
+const WMO = {0:'בהיר',1:'מעונן קל',2:'מעונן קל',3:'מעונן',45:'ערפילי',48:'ערפילי',51:'טפטוף',53:'טפטוף',55:'גשם קל',61:'גשם',63:'גשם',65:'גשם כבד',71:'שלג',73:'שלג',75:'שלג כבד',80:'ממטרים',81:'ממטרים',82:'ממטרים חזקים',95:'סופת רעמים'};
+const WMO_EMOJI = {0:'☀️',1:'🌤',2:'⛅',3:'☁️',45:'🌫',48:'🌫',51:'🌦',53:'🌦',55:'🌧',61:'🌧',63:'🌧',65:'🌧',71:'❄️',73:'❄️',75:'❄️',80:'🌦',81:'🌦',82:'⛈',95:'⛈'};
+const DONE = new Set(['done','blocked','cancelled','completed','הושלם','סיום','בוטל','נשלח']);
+const CAT_EMOJI = {English:'🎧',Meditation:'🧘',Fitness:'🏃',Reading:'📖',Business:'💼',Health:'💚'};
+const GREET = ['בוקר טוב! היום נעשה את זה 🚀','בוקר אור! קדימה ליום מדהים ✨','קום וזרח — היום שלך 💫','בוקר טוב, המנועים מתחממים 🔥','יום חדש, הזדמנויות חדשות 🌅'];
+const CLOSERS = ['יום מושלם מחכה לך 🌟','תזיז את ההרים היום ⛰️','קפה, מחשבה, ופעולה ☕','אתה על זה. בהצלחה! 💪','בהצלחה — אני איתך 🤝'];
 
 function notionVal(item, ...names) {
   const j = item.json || {};
@@ -72,123 +76,135 @@ function notionVal(item, ...names) {
   const props = j.properties || j;
   for (const wanted of names) {
     const key = Object.keys(props).find((k) => k.toLowerCase() === wanted.toLowerCase());
-    if (key) {
-      const v = props[key];
-      if (v?.title) return v.title.map((t) => t.plain_text || t.text?.content || '').join('');
-      if (v?.rich_text) return v.rich_text.map((t) => t.plain_text || t.text?.content || '').join('');
-      if (v?.select) return v.select.name || '';
-      if (v?.status) return v.status.name || '';
-      if (v?.date) return v.date.start || '';
-    }
+    if (!key) continue;
+    const v = props[key];
+    if (v?.title) return v.title.map((t) => t.plain_text || t.text?.content || '').join('');
+    if (v?.rich_text) return v.rich_text.map((t) => t.plain_text || t.text?.content || '').join('');
+    if (v?.select) return v.select.name || '';
+    if (v?.status) return v.status.name || '';
+    if (v?.date) return v.date.start || '';
   }
   if (names.includes('Name') || names.includes('name')) return j.name || '';
   return '';
 }
 
-function notionTitle(item) {
+function clip(s, n = 70) {
+  const t = String(s || '').replace(/\\"/g, '"').replace(/\s+/g, ' ').trim();
+  return t.length <= n ? t : `${t.slice(0, n - 1)}…`;
+}
+
+function notionLine(item) {
   const notes = notionVal(item, 'Notes', 'notes');
-  const title = notionVal(item, 'name', 'Name', 'Task name', 'title', 'שם המטלה', 'נושא');
-  if (title) return title;
-  if (!notes) return '';
-  return notes.split('\n')[0].replace(/^🎯\s*/, '').trim().slice(0, 100);
+  const tip = notes.match(/💡\s*טיפ היום:\s*(.+)/)?.[1]?.trim();
+  const fact = notes.match(/🎯\s*עובדה מהירה:\s*([^\n]+)/)?.[1]?.trim();
+  const title = notionVal(item, 'name', 'Name', 'title') || fact || tip || notes.split('\n')[0] || '';
+  const cat = notionVal(item, 'Type', 'type', 'Category', 'category') || '';
+  const emoji = CAT_EMOJI[cat] || '✨';
+  const text = clip(tip || title.replace(/^🎯\s*/, ''), 68);
+  return { text, cat, emoji };
+}
+
+function cleanCdata(s) {
+  return String(s || '').replace(/<!\[CDATA\[|\]\]>/g, '').trim();
+}
+
+function rssField(block, tag) {
+  const m = block.match(new RegExp(`<${tag}>(?:<!\\[CDATA\\[)?([\\s\\S]*?)(?:\\]\\]>)?<\\/${tag}>`));
+  return cleanCdata(m?.[1] || '');
 }
 
 const now = new Date();
 const ilTime = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Jerusalem' }));
-const dayMap = { 0: 'ראשון', 1: 'שני', 2: 'שלישי', 3: 'רביעי', 4: 'חמישי', 5: 'שישי', 6: 'שבת' };
+const dayMap = {0:'ראשון',1:'שני',2:'שלישי',3:'רביעי',4:'חמישי',5:'שישי',6:'שבת'};
 const dayName = dayMap[ilTime.getDay()];
-const dateStr = ilTime.toLocaleDateString('he-IL', { timeZone: 'Asia/Jerusalem' });
+const datePretty = ilTime.toLocaleDateString('he-IL', { timeZone: 'Asia/Jerusalem', day: 'numeric', month: 'long' });
 const timeStr = ilTime.toLocaleTimeString('he-IL', { timeZone: 'Asia/Jerusalem', hour: '2-digit', minute: '2-digit' });
 const todayIso = ilTime.toLocaleDateString('en-CA', { timeZone: 'Asia/Jerusalem' });
+const greet = GREET[ilTime.getDay() % GREET.length];
+const closer = CLOSERS[ilTime.getDate() % CLOSERS.length];
 
-let wSection = 'מקור Open-Meteo לא זמין';
+// ── Weather ──
+let weatherBlock = '🌡 לא הצלחתי לשלוף מזג אוויר';
 try {
   const w = $('Open-Meteo').first().json;
-  const c = w.current;
-  const d = w.daily;
-  const desc = WMO[c.weather_code] || `קוד ${c.weather_code}`;
-  const rise = d.sunrise?.[0]?.slice(-5) || '?';
-  const set = d.sunset?.[0]?.slice(-5) || '?';
-  wSection = `מצב: ${desc} | ${c.temperature_2m.toFixed(0)}°C (מרגיש ${c.apparent_temperature.toFixed(0)}°C)\n`
-    + `טווח: ${d.temperature_2m_min[0].toFixed(0)}–${d.temperature_2m_max[0].toFixed(0)}°C | לחות: ${c.relative_humidity_2m}%\n`
-    + `רוח: ${c.wind_speed_10m.toFixed(0)} קמש | שמש: ${rise}–${set}\n`
-    + `עדכון: ${c.time} (Open-Meteo)`;
-} catch (e) {
-  wSection = 'שגיאה בקריאת מזג אוויר';
-}
+  const c = w.current, d = w.daily;
+  const code = c.weather_code;
+  const emoji = WMO_EMOJI[code] || '🌡';
+  const desc = WMO[code] || 'לא ידוע';
+  const temp = Math.round(c.temperature_2m);
+  const feels = Math.round(c.apparent_temperature);
+  const tMin = Math.round(d.temperature_2m_min[0]);
+  const tMax = Math.round(d.temperature_2m_max[0]);
+  const rise = d.sunrise?.[0]?.slice(11, 16) || '?';
+  const set = d.sunset?.[0]?.slice(11, 16) || '?';
+  const wind = Math.round(c.wind_speed_10m);
+  const humid = c.relative_humidity_2m;
+  let vibe = temp >= 32 ? 'חם — שתה מים 🥤' : temp <= 14 ? 'קריר — שכבה נוספת 🧥' : 'מזג מעולה ליום פרודוקטיבי 👌';
+  weatherBlock = `${emoji} *${desc}* · ${temp}° (מרגיש ${feels}°)\n`
+    + `📊 ${tMin}°–${tMax}°  ·  🌅 ${rise}  ·  🌇 ${set}  ·  💨 ${wind}  ·  💧 ${humid}%\n`
+    + `_${vibe}_`;
+} catch (e) { /* keep fallback */ }
 
-let cSection = 'מקור frankfurter.app לא זמין';
+// ── FX ──
+let fxLine = '💶 שער לא זמין';
 try {
   const r = $('EUR/ILS').first().json;
-  const eurIls = (1 / r.rates.EUR).toFixed(2);
-  cSection = `1 EUR = ${eurIls} שקלים\nנתון: ${r.date} (frankfurter.app)`;
-} catch (e) {
-  cSection = 'שגיאה בקריאת שער חליפין';
-}
+  const eur = (1 / r.rates.EUR).toFixed(2);
+  fxLine = `💶 *יורו:* ${eur} ₪`;
+} catch (e) { /* keep fallback */ }
 
-let nSection = 'מקור Ynet RSS לא זמין';
+// ── News ──
+let newsBlock = '📰 אין כותרות כרגע';
 try {
   const raw = $('Ynet RSS').first().data || $('Ynet RSS').first().json;
   const text = typeof raw === 'string' ? raw : JSON.stringify(raw);
   const items = text.match(/<item>[\s\S]*?<\/item>/g) || [];
   const lines = [];
   for (let i = 0; i < Math.min(3, items.length); i++) {
-    const title = items[i].match(/<title><!\[CDATA\[(.+?)\]\]><\/title>/)?.[1]
-      || items[i].match(/<title>(.+?)<\/title>/)?.[1] || '?';
-    const link = items[i].match(/<link>(.+?)<\/link>/)?.[1] || '?';
-    const pub = items[i].match(/<pubDate>(.+?)<\/pubDate>/)?.[1] || '?';
-    lines.push(`${i + 1}. ${title}\n   ${link}\n   שעת פרסום: ${pub}`);
+    const title = clip(rssField(items[i], 'title'), 85);
+    if (title) lines.push(`▸ ${title}`);
   }
-  nSection = lines.join('\n') || 'אין כותרות זמינות';
-} catch (e) {
-  nSection = 'שגיאה בקריאת RSS';
-}
+  if (lines.length) newsBlock = lines.join('\n');
+} catch (e) { /* keep fallback */ }
 
-let noSection = 'לא הוגדר חיבור Notion בתצורה';
+// ── Tasks ──
+let tasksBlock = '✅ _אין משימות פתוחות — יום נקי!_ 🎉';
 try {
   const notionItems = $('Notion Tasks Today').all();
-  if (!notionItems.length) {
-    noSection = 'אין משימות במסד Notion';
-  } else {
-    const tasks = notionItems.map((item) => {
-      const title = notionTitle(item);
-      const status = (notionVal(item, 'Status', 'status') || '').trim();
-      const dueRaw = notionVal(item, 'Due Date', 'due_date', 'Date', 'date', 'מועד הגשה', 'due') || '';
-      const due = dueRaw.slice(0, 10);
-      const priority = notionVal(item, 'Priority', 'priority', 'Category', 'category', 'קטגוריה', 'Type', 'type');
-      return { title, status, due, priority };
-    }).filter((t) => {
-      if (!t.title) return false;
-      const s = t.status.toLowerCase();
-      if (DONE.has(s) || s === 'done') return false;
-      if (!t.due) return true;
-      return t.due <= todayIso;
-    }).slice(0, 8);
+  const tasks = notionItems.map((item) => {
+    const line = notionLine(item);
+    const status = (notionVal(item, 'Status', 'status') || '').toLowerCase();
+    const due = (notionVal(item, 'Due Date', 'due_date', 'Date', 'date') || '').slice(0, 10);
+    return { ...line, status, due };
+  }).filter((t) => {
+    if (!t.text) return false;
+    if (DONE.has(t.status) || t.status === 'done') return false;
+    if (!t.due) return true;
+    return t.due <= todayIso;
+  }).slice(0, 5);
 
-    if (!tasks.length) {
-      noSection = 'אין משימות פתוחות להיום 🎉';
-    } else {
-      noSection = tasks.map((t, i) => {
-        const pri = t.priority ? ` [${t.priority}]` : '';
-        const late = t.due < todayIso ? ' ⚠️ באיחור' : '';
-        return `${i + 1}. ${t.title}${pri}${late}`;
-      }).join('\n');
-    }
+  if (tasks.length) {
+    tasksBlock = tasks.map((t, i) => {
+      const late = t.due && t.due < todayIso ? ' ⏰' : '';
+      const tag = t.cat ? ` _${t.cat}_` : '';
+      return `${i + 1}. ${t.emoji} ${t.text}${tag}${late}`;
+    }).join('\n');
   }
 } catch (e) {
-  noSection = 'שגיאה בקריאת משימות Notion';
+  tasksBlock = '📋 לא הצלחתי לטעון משימות';
 }
 
-const msg = `☀️ מבזק בוקר — ${dayName} ${dateStr} ${timeStr}\n\n`
-  + `🌡 מזג אוויר — תל אביב\n${wSection}\n\n`
-  + `💱 שער חליפין\n${cSection}\n\n`
-  + `📰 חדשות אחרונות\n${nSection}\n\n`
-  + `📋 משימות להיום (Notion)\n${noSection}\n\n`
-  + `————————————————\n`
-  + `המבזק נוצר ב-${timeStr} (שעון ישראל)\n`
-  + `נתונים מאותה הרצה בלבד`;
+const msg = `☀️ *${greet}*\n`
+  + `_${dayName} · ${datePretty} · ${timeStr}_\n\n`
+  + `━━━━━━━━━━━━━━\n`
+  + `🌤 *תל אביב היום*\n${weatherBlock}\n\n`
+  + `${fxLine}\n\n`
+  + `📰 *מה קורה בעולם*\n${newsBlock}\n\n`
+  + `🎯 *הפוקוס שלך היום*\n${tasksBlock}\n\n`
+  + `━━━━━━━━━━━━━━\n`
+  + `${closer}`;
 
-const truncated = msg.length > 3500 ? `${msg.substring(0, 3490)}...` : msg;
+const truncated = msg.length > 3500 ? `${msg.substring(0, 3480)}…` : msg;
 return [{ json: { message: truncated, msgLen: truncated.length } }];
 """
 
