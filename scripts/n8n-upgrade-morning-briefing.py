@@ -20,8 +20,19 @@ NOTION_CRED_NAME = os.environ.get("NOTION_N8N_CRED_NAME", "Notion mavash")
 TASKS_DB_ID = os.environ.get("NOTION_TASKS_DB_ID", "e40707d9-b4e5-490b-93dd-008b852ef677")
 TASKS_DB_NAME = os.environ.get("NOTION_TASKS_DB_NAME", "✅ Tasks")
 
-GREEN_CRED_ID = os.environ.get("GREEN_API_CRED_ID", "aIiNaPP9DgTw0xyx")
-GREEN_CRED_NAME = os.environ.get("GREEN_API_CRED_NAME", "Green 140")
+GREEN_CRED_ID = os.environ.get(
+    "GREEN_API_CRED_ID",
+    "ZYnIsxwkzHrXXOC1" if "dev.n8n" in BASE else "aIiNaPP9DgTw0xyx",
+)
+GREEN_CRED_NAME = os.environ.get(
+    "GREEN_API_CRED_NAME",
+    "Green-API account" if "dev.n8n" in BASE else "Green 140",
+)
+# prod: greenApi | dev green-api plugin: greenApiAuthApi
+GREEN_CRED_KEY = os.environ.get(
+    "GREEN_API_CRED_KEY",
+    "greenApiAuthApi" if "dev.n8n" in BASE else "greenApi",
+)
 WHATSAPP_CHAT_ID = os.environ.get("WHATSAPP_CHAT_ID", "972544223911@c.us")
 
 # prod: n8n-nodes-whatsapp-green-api.greenApi | dev: @green-api/n8n-nodes-whatsapp-greenapi.greenapi
@@ -282,7 +293,7 @@ def build_workflow() -> dict:
             "type": WHATSAPP_NODE_TYPE,
             "typeVersion": 1,
             "position": [1080, 80],
-            "credentials": {"greenApi": {"id": GREEN_CRED_ID, "name": GREEN_CRED_NAME}},
+            "credentials": {GREEN_CRED_KEY: {"id": GREEN_CRED_ID, "name": GREEN_CRED_NAME}},
         },
     ]
 
@@ -320,11 +331,11 @@ def patch_existing(wf: dict) -> None:
         "cachedResultUrl": f"https://www.notion.so/{TASKS_DB_ID.replace('-', '')}",
     }
     cred = {"notionApi": {"id": NOTION_CRED_ID, "name": NOTION_CRED_NAME}}
-    green = {"greenApi": {"id": GREEN_CRED_ID, "name": GREEN_CRED_NAME}}
+    green = {GREEN_CRED_KEY: {"id": GREEN_CRED_ID, "name": GREEN_CRED_NAME}}
 
     names = {n["name"] for n in wf.get("nodes", [])}
     if "Notion Tasks Today" not in names:
-        raise SystemExit("Workflow missing Notion Tasks Today node; recreate with POST instead of PUT")
+        return
 
     for node in wf["nodes"]:
         if node["name"] == "Notion Tasks Today":
@@ -340,14 +351,25 @@ def patch_existing(wf: dict) -> None:
 
 def main() -> None:
     if WORKFLOW_ID:
-        wf = api("GET", f"/workflows/{WORKFLOW_ID}")
-        patch_existing(wf)
-        payload = {
-            "name": wf["name"],
-            "nodes": wf["nodes"],
-            "connections": wf["connections"],
-            "settings": wf.get("settings") or {"executionOrder": "v1"},
-        }
+        existing = api("GET", f"/workflows/{WORKFLOW_ID}")
+        names = {n["name"] for n in existing.get("nodes", [])}
+        if "Notion Tasks Today" in names and "Merge All" in names:
+            wf = existing
+            patch_existing(wf)
+            payload = {
+                "name": wf["name"],
+                "nodes": wf["nodes"],
+                "connections": wf["connections"],
+                "settings": {"executionOrder": "v1", "timezone": "Asia/Jerusalem"},
+            }
+        else:
+            wf = build_workflow()
+            payload = {
+                "name": wf["name"],
+                "nodes": wf["nodes"],
+                "connections": wf["connections"],
+                "settings": wf["settings"],
+            }
         api("PUT", f"/workflows/{WORKFLOW_ID}", payload)
         wf_id = WORKFLOW_ID
         action = "updated"
