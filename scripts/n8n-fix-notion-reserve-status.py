@@ -1,9 +1,5 @@
 #!/usr/bin/env python3
-"""Fix Notion Status fields on workflow qzdNnmEvRGSPVJSX.
-
-n8n requires property keys in the form `Name|type` (e.g. Status|status).
-Without the type suffix, mapProperties sends an empty object and Notion rejects the update.
-"""
+"""Fix Notion topic workflow qzdNnmEvRGSPVJSX — property keys + Content Topics DB."""
 
 from __future__ import annotations
 
@@ -15,13 +11,9 @@ import urllib.request
 WORKFLOW_ID = os.environ.get("N8N_WORKFLOW_ID", "qzdNnmEvRGSPVJSX")
 BASE = os.environ.get("N8N_BASE_URL", "https://n8n.mavash.net").rstrip("/")
 API_KEY = os.environ.get("N8N_API_KEY", "")
-
-SIMP_MAP_SNIPPET = """  const simpMap = {
-    Name: 'property_name', Status: 'property_status', Category: 'property_category',
-    Channel: 'property_channel', 'Last Used': 'property_last_used',
-    'Times Used': 'property_times_used', Angle: 'property_angle', Notes: 'property_notes',
-  };
-"""
+NOTION_DB = os.environ.get("NOTION_TOPICS_DB_ID", "3ce419e7-2f11-8156-8943-e4e0223bb488")
+NOTION_CRED = os.environ.get("NOTION_N8N_CRED_ID", "KHzmMLLA6MK3IB8X")
+NOTION_CRED_NAME = os.environ.get("NOTION_N8N_CRED_NAME", "Notion agent API")
 
 
 def api(method: str, path: str, body: dict | None = None) -> dict:
@@ -40,42 +32,53 @@ def api(method: str, path: str, body: dict | None = None) -> dict:
         raise SystemExit(f"{method} {path} -> HTTP {exc.code}: {exc.read().decode()[:500]}") from exc
 
 
-def patch_select_diverse_topic(code: str) -> str:
-    if "property_status" in code:
-        return code
-    code = code.replace(
-        "function val(item, wanted) {\n  const props = item.json.properties || item.json;",
-        "function val(item, wanted) {\n  const props = item.json.properties || item.json;\n" + SIMP_MAP_SNIPPET,
-    )
-    return code.replace(
-        "  if (!key) return '';\n  return extract(props[key]);",
-        "  if (!key && simpMap[wanted] && item.json[simpMap[wanted]] !== undefined) {\n"
-        "    return item.json[simpMap[wanted]];\n"
-        "  }\n"
-        "  if (!key) return '';\n"
-        "  return extract(props[key]);",
-    )
-
-
 def patch_nodes(wf: dict) -> None:
+    db_ref = {
+        "__rl": True,
+        "value": NOTION_DB,
+        "mode": "list",
+        "cachedResultName": "Content Topics",
+        "cachedResultUrl": f"https://www.notion.so/{NOTION_DB.replace('-', '')}",
+    }
+    cred = {"notionApi": {"id": NOTION_CRED, "name": NOTION_CRED_NAME}}
+
     for node in wf.get("nodes", []):
         name = node.get("name", "")
-        if name == "NEW — Notion Reserve Topic":
+        if name == "NEW — Notion Get Topics":
+            node["parameters"]["databaseId"] = db_ref
+            node["credentials"] = cred
+        elif name == "NEW — Notion Reserve Topic":
+            node["credentials"] = cred
             node["parameters"]["propertiesUi"]["propertyValues"] = [
                 {"key": "Status|status", "statusValue": "Reserved"},
+                {
+                    "key": "Reserved At|date",
+                    "date": "={{ $json.reservedAt }}",
+                    "includeTime": True,
+                    "range": False,
+                },
             ]
         elif name == "NEW — Notion Mark Used":
+            node["credentials"] = cred
             node["parameters"]["propertiesUi"]["propertyValues"] = [
                 {"key": "Status|status", "statusValue": "Used"},
+                {
+                    "key": "Last Used|date",
+                    "date": "={{ $now.toISO() }}",
+                    "includeTime": True,
+                    "range": False,
+                },
+                {
+                    "key": "Times Used|number",
+                    "numberValue": "={{($json.timesUsed || 0) + 1}}",
+                },
             ]
-        elif name == "NEW — Select Diverse Topic":
-            node["parameters"]["jsCode"] = patch_select_diverse_topic(
-                node["parameters"].get("jsCode", "")
-            )
 
 
-def put_workflow(wf: dict) -> dict:
-    return api(
+def main() -> None:
+    wf = api("GET", f"/workflows/{WORKFLOW_ID}")
+    patch_nodes(wf)
+    api(
         "PUT",
         f"/workflows/{WORKFLOW_ID}",
         {
@@ -85,13 +88,7 @@ def put_workflow(wf: dict) -> dict:
             "settings": {"executionOrder": "v1"},
         },
     )
-
-
-def main() -> None:
-    wf = api("GET", f"/workflows/{WORKFLOW_ID}")
-    patch_nodes(wf)
-    put_workflow(wf)
-    print("OK: patched Notion property keys (Status|status) and simplified field mapping")
+    print("OK: workflow patched (Content Topics DB + Status|status keys)")
 
 
 if __name__ == "__main__":
