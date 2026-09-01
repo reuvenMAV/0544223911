@@ -100,7 +100,7 @@ function notionLine(item) {
   const title = notionVal(item, 'name', 'Name', 'title') || fact || tip || notes.split('\n')[0] || '';
   const cat = notionVal(item, 'Type', 'type', 'Category', 'category') || '';
   const emoji = CAT_EMOJI[cat] || '✨';
-  const text = clip(tip || title.replace(/^🎯\s*/, ''), 68);
+  const text = clip(tip || fact?.replace(/^עובדה מהירה:\s*/i, '') || title.replace(/^🎯\s*/, ''), 65);
   return { text, cat, emoji };
 }
 
@@ -120,8 +120,8 @@ const dayName = dayMap[ilTime.getDay()];
 const datePretty = ilTime.toLocaleDateString('he-IL', { timeZone: 'Asia/Jerusalem', day: 'numeric', month: 'long' });
 const timeStr = ilTime.toLocaleTimeString('he-IL', { timeZone: 'Asia/Jerusalem', hour: '2-digit', minute: '2-digit' });
 const todayIso = ilTime.toLocaleDateString('en-CA', { timeZone: 'Asia/Jerusalem' });
-const greet = GREET[ilTime.getDay() % GREET.length];
-const closer = CLOSERS[ilTime.getDate() % CLOSERS.length];
+const greet = GREET[Math.floor(Math.random() * GREET.length)];
+const closer = CLOSERS[Math.floor(Math.random() * CLOSERS.length)];
 
 // ── Weather ──
 let weatherBlock = '🌡 לא הצלחתי לשלוף מזג אוויר';
@@ -194,18 +194,91 @@ try {
   tasksBlock = '📋 לא הצלחתי לטעון משימות';
 }
 
+// ── Quote / Joke / Word (random each run) ──
+let quoteBlock = '';
+try {
+  const raw = $('Daily Quote').first().json;
+  const item = Array.isArray(raw) ? raw[0] : raw;
+  if (item?.q) quoteBlock = `💭 *ציטוט היום*\n_"${clip(item.q, 120)}"_\n— _${item.a}_`;
+} catch (e) { /* optional */ }
+
+let jokeBlock = '';
+try {
+  const j = $('Daily Joke').first().json;
+  if (j?.setup && j?.delivery) jokeBlock = `😄 *בדיחה*\n${j.setup}\n👉 ${j.delivery}`;
+  else if (j?.joke) jokeBlock = `😄 *בדיחה*\n${j.joke}`;
+} catch (e) { /* optional */ }
+
+let wordBlock = '';
+try {
+  const w = $('Random Word').first().json;
+  if (w?.word) {
+    wordBlock = `📚 *מילה באנגלית:* ${w.word}`
+      + (w.pos ? ` _(${w.pos})_` : '')
+      + `\n🇮🇱 ${w.he || ''}`
+      + (w.example ? `\n✏️ _${w.example}_` : '');
+  }
+} catch (e) { /* optional */ }
+
+const bonus = [quoteBlock, jokeBlock, wordBlock].filter(Boolean);
+for (let i = bonus.length - 1; i > 0; i--) {
+  const j = Math.floor(Math.random() * (i + 1));
+  [bonus[i], bonus[j]] = [bonus[j], bonus[i]];
+}
+const bonusSection = bonus.length ? `\n\n✨ *רגע של השראה*\n${bonus.join('\n\n')}` : '';
+
 const msg = `☀️ *${greet}*\n`
   + `_${dayName} · ${datePretty} · ${timeStr}_\n\n`
   + `━━━━━━━━━━━━━━\n`
   + `🌤 *תל אביב היום*\n${weatherBlock}\n\n`
   + `${fxLine}\n\n`
   + `📰 *מה קורה בעולם*\n${newsBlock}\n\n`
-  + `🎯 *הפוקוס שלך היום*\n${tasksBlock}\n\n`
+  + `🎯 *הפוקוס שלך היום*\n${tasksBlock}`
+  + `${bonusSection}\n\n`
   + `━━━━━━━━━━━━━━\n`
   + `${closer}`;
 
 const truncated = msg.length > 3500 ? `${msg.substring(0, 3480)}…` : msg;
 return [{ json: { message: truncated, msgLen: truncated.length } }];
+"""
+
+RANDOM_JOKE_CODE = r"""const jokes = [
+  { setup: 'למה המחשב הלך לרופא?', delivery: 'כי יש לו וירוס 🦠' },
+  { setup: 'מה הענן אמר לענן השני?', delivery: 'בוא נעשה גשם ונעוף מפה ☁️' },
+  { setup: 'איך קוראים לדג שמנגן גיטרה?', delivery: 'סלמון אלוויס 🎸' },
+  { setup: 'למה לא משחקים קלפים בג\'ונגל?', delivery: 'יותר מדי נמרים 🐯' },
+  { setup: 'מה הקפה אמר לסוכר?', delivery: 'אתה ממתיק לי את הבוקר ☕' },
+  { setup: 'Why did the developer go broke?', delivery: 'Because he used up all his cache 💸' },
+  { setup: 'Why do programmers prefer dark mode?', delivery: 'Because light attracts bugs 🐛' },
+  { setup: 'What do you call a fake noodle?', delivery: 'An impasta 🍝' },
+  { setup: 'Why did the scarecrow win an award?', delivery: 'He was outstanding in his field 🌾' },
+  { setup: 'למה הספר דק?', delivery: 'כי יש לו הרבה דפים חסרים 📖' },
+  { setup: 'מה אמר הזמן לשעון?', delivery: 'תפסיק ללחוץ עליי ⏰' },
+  { setup: 'איך קוראים לדוב שיודע קראטה?', delivery: 'דוב קאטה 🥋' },
+];
+const j = jokes[Math.floor(Math.random() * jokes.length)];
+return [{ json: j }];
+"""
+
+RANDOM_WORD_CODE = r"""const words = [
+  { word: 'resilient', pos: 'adj', he: 'גמיש, חזק מבפנים', example: 'Stay resilient when plans change.' },
+  { word: 'clarity', pos: 'noun', he: 'בהירות', example: 'Morning clarity helps better decisions.' },
+  { word: 'thrive', pos: 'verb', he: 'לשגשג', example: 'Small habits help you thrive.' },
+  { word: 'curious', pos: 'adj', he: 'סקרן', example: 'Stay curious and keep learning.' },
+  { word: 'momentum', pos: 'noun', he: 'תנע', example: 'One win creates momentum.' },
+  { word: 'grateful', pos: 'adj', he: 'אסיר תודה', example: 'I am grateful for today.' },
+  { word: 'focus', pos: 'noun', he: 'מיקוד', example: 'Protect your focus in the morning.' },
+  { word: 'patient', pos: 'adj', he: 'סבלני', example: 'Be patient with your progress.' },
+  { word: 'bold', pos: 'adj', he: 'נועז', example: 'Take one bold step today.' },
+  { word: 'spark', pos: 'noun', he: 'ניצוץ', example: 'A small spark can start a fire.' },
+  { word: 'calm', pos: 'adj', he: 'רגוע', example: 'A calm mind solves hard problems.' },
+  { word: 'effort', pos: 'noun', he: 'מאמץ', example: 'Consistent effort beats talent.' },
+  { word: 'bridge', pos: 'noun', he: 'גשר', example: 'Good communication builds bridges.' },
+  { word: 'shine', pos: 'verb', he: 'לזרוח', example: 'You shine when you show up.' },
+  { word: 'worthwhile', pos: 'adj', he: 'כדאי', example: 'This challenge is worthwhile.' },
+];
+const w = words[Math.floor(Math.random() * words.length)];
+return [{ json: w }];
 """
 
 
@@ -309,9 +382,40 @@ def build_workflow() -> dict:
         },
         {
             "parameters": {
+                "url": "https://zenquotes.io/api/random",
+                "options": {
+                    "timeout": 10000,
+                    "response": {"response": {"responseFormat": "json"}},
+                },
+            },
+            "id": nid(),
+            "name": "Daily Quote",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [280, 520],
+            "onError": "continueRegularOutput",
+        },
+        {
+            "parameters": {"jsCode": RANDOM_JOKE_CODE},
+            "id": nid(),
+            "name": "Daily Joke",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [280, 680],
+        },
+        {
+            "parameters": {"jsCode": RANDOM_WORD_CODE},
+            "id": nid(),
+            "name": "Random Word",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [280, 840],
+        },
+        {
+            "parameters": {
                 "mode": "combine",
                 "combineBy": "combineByPosition",
-                "numberInputs": 4,
+                "numberInputs": 7,
                 "options": {},
             },
             "id": nid(),
@@ -349,22 +453,37 @@ def build_workflow() -> dict:
                 {"node": "EUR/ILS", "type": "main", "index": 0},
                 {"node": "Ynet RSS", "type": "main", "index": 0},
                 {"node": "Notion Tasks Today", "type": "main", "index": 0},
+                {"node": "Daily Quote", "type": "main", "index": 0},
+                {"node": "Daily Joke", "type": "main", "index": 0},
+                {"node": "Random Word", "type": "main", "index": 0},
             ]]
         },
         "Open-Meteo": {"main": [[{"node": "Merge All", "type": "main", "index": 0}]]},
         "EUR/ILS": {"main": [[{"node": "Merge All", "type": "main", "index": 1}]]},
         "Ynet RSS": {"main": [[{"node": "Merge All", "type": "main", "index": 2}]]},
         "Notion Tasks Today": {"main": [[{"node": "Merge All", "type": "main", "index": 3}]]},
+        "Daily Quote": {"main": [[{"node": "Merge All", "type": "main", "index": 4}]]},
+        "Daily Joke": {"main": [[{"node": "Merge All", "type": "main", "index": 5}]]},
+        "Random Word": {"main": [[{"node": "Merge All", "type": "main", "index": 6}]]},
         "Merge All": {"main": [[{"node": "Parse & Build", "type": "main", "index": 0}]]},
         "Parse & Build": {"main": [[{"node": "WhatsApp Send", "type": "main", "index": 0}]]},
     }
 
     return {
-        "name": "☀️ מבזק בוקר IL — v2 (Notion + WhatsApp)",
+        "name": "☀️ מבזק בוקר IL — v3 (Notion + השראה)",
         "nodes": nodes,
         "connections": connections,
         "settings": {"executionOrder": "v1", "timezone": "Asia/Jerusalem"},
     }
+
+
+REQUIRED_NODES = {
+    "Notion Tasks Today",
+    "Merge All",
+    "Daily Quote",
+    "Daily Joke",
+    "Random Word",
+}
 
 
 def patch_existing(wf: dict) -> None:
@@ -389,6 +508,12 @@ def patch_existing(wf: dict) -> None:
             node["onError"] = "continueRegularOutput"
         elif node["name"] == "Parse & Build":
             node["parameters"]["jsCode"] = PARSE_CODE
+        elif node["name"] == "Daily Joke":
+            node["parameters"]["jsCode"] = RANDOM_JOKE_CODE
+        elif node["name"] == "Random Word":
+            node["parameters"]["jsCode"] = RANDOM_WORD_CODE
+        elif node["name"] == "Merge All":
+            node["parameters"]["numberInputs"] = 7
         elif node["name"] == "WhatsApp Send":
             node["parameters"]["chatId"] = WHATSAPP_CHAT_ID
             node["credentials"] = green
@@ -399,7 +524,7 @@ def main() -> None:
     if WORKFLOW_ID:
         existing = api("GET", f"/workflows/{WORKFLOW_ID}")
         names = {n["name"] for n in existing.get("nodes", [])}
-        if "Notion Tasks Today" in names and "Merge All" in names:
+        if REQUIRED_NODES.issubset(names):
             wf = existing
             patch_existing(wf)
             payload = {
