@@ -1,0 +1,255 @@
+{
+  "name": "☀️ מבזק בוקר IL — v2 (Notion + WhatsApp)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 7
+            }
+          ],
+          "timezone": "Asia/Jerusalem"
+        }
+      },
+      "id": "d0384803-5b1c-4ec0-a444-88e60a2c5c5e",
+      "name": "Schedule 07:00 IL",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://api.open-meteo.com/v1/forecast?latitude=32.08&longitude=34.78&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m&daily=temperature_2m_max,temperature_2m_min,sunrise,sunset&timezone=Asia%2FJerusalem&forecast_days=1",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "7c2d27e7-0c59-4178-9dcf-9d278fd409c5",
+      "name": "Open-Meteo",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        280,
+        -120
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://api.frankfurter.app/latest?from=ILS&to=EUR",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "95b43c9f-262f-46cf-8b3e-5b6b89ab4233",
+      "name": "EUR/ILS",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        280,
+        40
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://www.ynet.co.il/Integration/StoryRss2.xml",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          },
+          "timeout": 15000
+        }
+      },
+      "id": "dd2af16a-7813-49f1-af93-0f22caa393b7",
+      "name": "Ynet RSS",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        280,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "getAll",
+        "databaseId": {
+          "__rl": true,
+          "value": "e40707d9-b4e5-490b-93dd-008b852ef677",
+          "mode": "list",
+          "cachedResultName": "✅ Tasks",
+          "cachedResultUrl": "https://www.notion.so/e40707d9b4e5490b93dd008b852ef677"
+        },
+        "returnAll": true,
+        "options": {}
+      },
+      "id": "a957db9d-70fa-4a88-a0d1-d44716012136",
+      "name": "Notion Tasks Today",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        280,
+        360
+      ],
+      "credentials": {
+        "notionApi": {
+          "id": "KHzmMLLA6MK3IB8X",
+          "name": "Notion agent API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "numberInputs": 4,
+        "options": {}
+      },
+      "id": "afa06df2-4a82-44c6-b077-fb59531330e6",
+      "name": "Merge All",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        560,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse all sources and build morning briefing\nconst WMO = {0:'בהיר',1:'בהיר חלקית',2:'בהיר חלקית',3:'בהיר חלקית',45:'ערפל',48:'ערפל',51:'טפטוף',53:'טפטוף',55:'טפטוף',61:'גשם',63:'גשם',65:'גשם',71:'שלג',73:'שלג',75:'שלג',80:'גשם לפרקים',81:'גשם לפרקים',82:'גשם לפרקים',95:'סופה'};\nconst DONE = new Set(['done', 'blocked', 'cancelled', 'הושלם', 'סיום', 'בוטל']);\n\nfunction notionVal(item, ...names) {\n  const j = item.json || {};\n  const props = j.properties || j;\n  for (const wanted of names) {\n    const key = Object.keys(props).find((k) => k.toLowerCase() === wanted.toLowerCase());\n    if (key) {\n      const v = props[key];\n      if (v?.title) return v.title.map((t) => t.plain_text || t.text?.content || '').join('');\n      if (v?.rich_text) return v.rich_text.map((t) => t.plain_text || t.text?.content || '').join('');\n      if (v?.select) return v.select.name || '';\n      if (v?.status) return v.status.name || '';\n      if (v?.date) return v.date.start || '';\n    }\n    const simp = j[`property_${wanted.toLowerCase().replace(/ /g, '_')}`];\n    if (simp !== undefined && simp !== null) return String(simp);\n  }\n  return j.name || '';\n}\n\nconst now = new Date();\nconst ilTime = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Jerusalem' }));\nconst dayMap = { 0: 'ראשון', 1: 'שני', 2: 'שלישי', 3: 'רביעי', 4: 'חמישי', 5: 'שישי', 6: 'שבת' };\nconst dayName = dayMap[ilTime.getDay()];\nconst dateStr = ilTime.toLocaleDateString('he-IL', { timeZone: 'Asia/Jerusalem' });\nconst timeStr = ilTime.toLocaleTimeString('he-IL', { timeZone: 'Asia/Jerusalem', hour: '2-digit', minute: '2-digit' });\nconst todayIso = ilTime.toLocaleDateString('en-CA', { timeZone: 'Asia/Jerusalem' });\n\nlet wSection = 'מקור Open-Meteo לא זמין';\ntry {\n  const w = $('Open-Meteo').first().json;\n  const c = w.current;\n  const d = w.daily;\n  const desc = WMO[c.weather_code] || `קוד ${c.weather_code}`;\n  const rise = d.sunrise?.[0]?.slice(-5) || '?';\n  const set = d.sunset?.[0]?.slice(-5) || '?';\n  wSection = `מצב: ${desc} | ${c.temperature_2m.toFixed(0)}°C (מרגיש ${c.apparent_temperature.toFixed(0)}°C)\\n`\n    + `טווח: ${d.temperature_2m_min[0].toFixed(0)}–${d.temperature_2m_max[0].toFixed(0)}°C | לחות: ${c.relative_humidity_2m}%\\n`\n    + `רוח: ${c.wind_speed_10m.toFixed(0)} קמש | שמש: ${rise}–${set}\\n`\n    + `עדכון: ${c.time} (Open-Meteo)`;\n} catch (e) {\n  wSection = 'שגיאה בקריאת מזג אוויר';\n}\n\nlet cSection = 'מקור frankfurter.app לא זמין';\ntry {\n  const r = $('EUR/ILS').first().json;\n  const eurIls = (1 / r.rates.EUR).toFixed(2);\n  cSection = `1 EUR = ${eurIls} שקלים\\nנתון: ${r.date} (frankfurter.app)`;\n} catch (e) {\n  cSection = 'שגיאה בקריאת שער חליפין';\n}\n\nlet nSection = 'מקור Ynet RSS לא זמין';\ntry {\n  const raw = $('Ynet RSS').first().data || $('Ynet RSS').first().json;\n  const text = typeof raw === 'string' ? raw : JSON.stringify(raw);\n  const items = text.match(/<item>[\\s\\S]*?<\\/item>/g) || [];\n  const lines = [];\n  for (let i = 0; i < Math.min(3, items.length); i++) {\n    const title = items[i].match(/<title><!\\[CDATA\\[(.+?)\\]\\]><\\/title>/)?.[1]\n      || items[i].match(/<title>(.+?)<\\/title>/)?.[1] || '?';\n    const link = items[i].match(/<link>(.+?)<\\/link>/)?.[1] || '?';\n    const pub = items[i].match(/<pubDate>(.+?)<\\/pubDate>/)?.[1] || '?';\n    lines.push(`${i + 1}. ${title}\\n   ${link}\\n   שעת פרסום: ${pub}`);\n  }\n  nSection = lines.join('\\n') || 'אין כותרות זמינות';\n} catch (e) {\n  nSection = 'שגיאה בקריאת RSS';\n}\n\nlet noSection = 'לא הוגדר חיבור Notion בתצורה';\ntry {\n  const notionItems = $('Notion Tasks Today').all();\n  if (!notionItems.length) {\n    noSection = 'אין משימות במסד Notion';\n  } else {\n    const tasks = notionItems.map((item) => {\n      const title = notionVal(item, 'Name', 'Task name', 'title') || '?';\n      const status = (notionVal(item, 'Status', 'status') || '').trim();\n      const dueRaw = notionVal(item, 'Due Date', 'Due date', 'due') || '';\n      const due = dueRaw.slice(0, 10);\n      const priority = notionVal(item, 'Priority', 'priority');\n      return { title, status, due, priority };\n    }).filter((t) => {\n      if (!t.due) return false;\n      if (t.due > todayIso) return false;\n      const s = t.status.toLowerCase();\n      return !DONE.has(s) && s !== 'done';\n    }).slice(0, 8);\n\n    if (!tasks.length) {\n      noSection = 'אין משימות פתוחות להיום 🎉';\n    } else {\n      noSection = tasks.map((t, i) => {\n        const pri = t.priority ? ` [${t.priority}]` : '';\n        const late = t.due < todayIso ? ' ⚠️ באיחור' : '';\n        return `${i + 1}. ${t.title}${pri}${late}`;\n      }).join('\\n');\n    }\n  }\n} catch (e) {\n  noSection = 'שגיאה בקריאת משימות Notion';\n}\n\nconst msg = `☀️ מבזק בוקר — ${dayName} ${dateStr} ${timeStr}\\n\\n`\n  + `🌡 מזג אוויר — תל אביב\\n${wSection}\\n\\n`\n  + `💱 שער חליפין\\n${cSection}\\n\\n`\n  + `📰 חדשות אחרונות\\n${nSection}\\n\\n`\n  + `📋 משימות להיום (Notion)\\n${noSection}\\n\\n`\n  + `————————————————\\n`\n  + `המבזק נוצר ב-${timeStr} (שעון ישראל)\\n`\n  + `נתונים מאותה הרצה בלבד`;\n\nconst truncated = msg.length > 3500 ? `${msg.substring(0, 3490)}...` : msg;\nreturn [{ json: { message: truncated, msgLen: truncated.length } }];\n"
+      },
+      "id": "27b520b7-e9cf-42f5-836b-3f9d98f52b79",
+      "name": "Parse & Build",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        820,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "972544223911@c.us",
+        "message": "={{ $json.message }}"
+      },
+      "id": "a3984843-cd11-48c9-96cd-cf172798cad9",
+      "name": "WhatsApp Send",
+      "type": "n8n-nodes-whatsapp-green-api.greenApi",
+      "typeVersion": 1,
+      "position": [
+        1080,
+        80
+      ],
+      "credentials": {
+        "greenApi": {
+          "id": "aIiNaPP9DgTw0xyx",
+          "name": "Green 140"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Schedule 07:00 IL": {
+      "main": [
+        [
+          {
+            "node": "Open-Meteo",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "EUR/ILS",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Ynet RSS",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Notion Tasks Today",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Open-Meteo": {
+      "main": [
+        [
+          {
+            "node": "Merge All",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "EUR/ILS": {
+      "main": [
+        [
+          {
+            "node": "Merge All",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Ynet RSS": {
+      "main": [
+        [
+          {
+            "node": "Merge All",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Notion Tasks Today": {
+      "main": [
+        [
+          {
+            "node": "Merge All",
+            "type": "main",
+            "index": 3
+          }
+        ]
+      ]
+    },
+    "Merge All": {
+      "main": [
+        [
+          {
+            "node": "Parse & Build",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse & Build": {
+      "main": [
+        [
+          {
+            "node": "WhatsApp Send",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Jerusalem"
+  },
+  "pinData": null
+}
