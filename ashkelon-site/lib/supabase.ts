@@ -1,5 +1,13 @@
-import { createClient, SupabaseClient } from '@supabase/supabase-js'
 
+import { createClient } from '@supabase/supabase-js'
+
+export const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  { auth: { persistSession: false } }
+)
+
+// Types from your schema
 export type BookingPayload = {
   event: string
   booking_id: string
@@ -8,17 +16,4 @@ export type BookingPayload = {
   pricing: { base: number; cleaning: number; upsells: number; total: number }
   payment: { method: string; status: string; transaction_id?: string }
   source: string
-}
-
-export function hasSupabase() {
-  return Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY)
-}
-
-export function getSupabaseAdmin(): SupabaseClient | null {
-  if (!hasSupabase()) return null
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    { auth: { persistSession: false } }
-  )
 }

@@ -1,56 +1,28 @@
+
 import { NextRequest, NextResponse } from 'next/server'
-import { getSupabaseAdmin } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase'
 import { sendToN8n } from '@/lib/n8n'
 
 export async function POST(req: NextRequest) {
-  try {
-    const body = await req.json()
-    const { status_code, ref, transaction_uid, amount } = body
-    const supabase = getSupabaseAdmin()
+  const body = await req.json()
+  // PayPlus IPN format: { transaction_uid, status_code: 0=success, more_info, ref }
+  const { status_code, ref, transaction_uid, amount } = body
 
-    if (status_code === 0) {
-      let booking = null
-      if (supabase && ref) {
-        const { data } = await supabase
-          .from('bookings')
-          .update({ status: 'paid', payment_intent_id: transaction_uid })
-          .or(`id.eq.${ref},booking_id.eq.${ref}`)
-          .select()
-          .maybeSingle()
-        booking = data
-      }
+  if (status_code === 0) {
+    // Mark booking as paid
+    const { data: booking } = await supabaseAdmin
+      .from('bookings')
+      .update({ status: 'paid', payment_intent_id: transaction_uid })
+      .eq('id', ref) // or booking_id mapping
+      .select()
+      .single()
 
-      await sendToN8n('/payment-status', {
-        event: 'payment_success',
-        booking,
-        transaction_uid,
-        amount,
-        ref,
-        body,
-      })
-      // Spec alias
-      await sendToN8n('/payment-success', {
-        event: 'payment_success',
-        booking,
-        transaction_uid,
-        amount,
-        ref,
-      })
+    // Trigger n8n payment success -> Core workflow continues to Calendar, Invoice, WA
+    await sendToN8n('/payment-success', { booking, transaction_uid, amount, ref })
 
-      return NextResponse.json({ success: true })
-    }
-
-    await sendToN8n('/payment-status', {
-      event: 'payment_failed',
-      ref,
-      status_code,
-      body,
-    })
+    return NextResponse.json({ success: true })
+  } else {
     await sendToN8n('/payment-failed', { ref, status_code, body })
-
     return NextResponse.json({ success: false }, { status: 400 })
-  } catch (e: unknown) {
-    const message = e instanceof Error ? e.message : 'Unknown error'
-    return NextResponse.json({ error: message }, { status: 500 })
   }
 }
