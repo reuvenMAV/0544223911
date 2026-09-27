@@ -79,7 +79,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Fire and forget - don't await to keep API <2s
-    sendToN8n('/new-booking', n8nPayload)
+    sendToN8n('/ashkelon-new-booking', n8nPayload)
 
     return NextResponse.json({
       success: true,

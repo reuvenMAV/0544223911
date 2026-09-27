@@ -1,0 +1,707 @@
+{
+  "name": "ASK-10 ניהול מטלגרם",
+  "nodes": [
+    {
+      "id": "tgtrig",
+      "name": "Telegram Trigger",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "8K4uLUGikVrC2jmD",
+          "name": "מעקב מסחר Telegram"
+        }
+      },
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "webhookId": "97b95e17-8cb9-4913-b3df-622229c51f9f"
+    },
+    {
+      "id": "parse",
+      "name": "Parse Command",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        0
+      ],
+      "parameters": {
+        "jsCode": "\nconst msg = $input.first().json.message || $input.first().json;\nconst text = (msg.text || '').trim();\nconst chatId = msg.chat?.id || msg.chatId;\nconst parts = text.split(/\\s+/);\nconst cmd = (parts[0] || '').split('@')[0].toLowerCase();\nlet action = 'help';\nlet payload = {};\nif (cmd === '/block' || cmd === '/blockdates') {\n  action = 'block';\n  const arg = parts.slice(1).join(' ');\n  payload = { raw: arg };\n  const iso = arg.match(/(\\d{4}-\\d{2}-\\d{2}).*?(\\d{4}-\\d{2}-\\d{2})/);\n  if (iso) { payload.start = iso[1]; payload.end = iso[2]; }\n  else {\n    const m = arg.match(/(\\d{1,2})-(\\d{1,2})\\.(\\d{1,2})(?:\\.(\\d{4}))?/);\n    if (m) {\n      const y = m[4] || String(new Date().getFullYear());\n      const mm = m[3].padStart(2,'0');\n      payload.start = `${y}-${mm}-${m[1].padStart(2,'0')}`;\n      payload.endInclusive = `${y}-${mm}-${m[2].padStart(2,'0')}`;\n    }\n  }\n} else if (cmd === '/status') action = 'status';\nelse if (cmd === '/today') action = 'today';\nelse if (cmd === '/price') { action = 'price'; payload = { raw: parts.slice(1).join(' ') }; }\nelse if (cmd === '/start' || cmd === '/help') action = 'help';\nreturn [{ json: { chatId, text, cmd, action, payload, message: msg } }];\n"
+      }
+    },
+    {
+      "id": "switch",
+      "name": "Switch Action",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [
+        480,
+        0
+      ],
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "block",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "block"
+            },
+            {
+              "conditions": {
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "status",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "status"
+            },
+            {
+              "conditions": {
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "today",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "today"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      }
+    },
+    {
+      "id": "blockdates",
+      "name": "Build Block Dates",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        720,
+        -200
+      ],
+      "parameters": {
+        "jsCode": "\nconst j = $input.first().json;\nlet start = j.payload.start;\nlet endInc = j.payload.endInclusive || j.payload.end;\nif (!start || !endInc) {\n  return [{ json: { ...j, ok: false, reply: 'שימוש: /block 10-12.10 או /block 2026-10-10 2026-10-12' } }];\n}\nlet endExclusive;\nif (j.payload.end && !j.payload.endInclusive) {\n  endExclusive = j.payload.end;\n} else {\n  const d = new Date(endInc + 'T00:00:00Z');\n  d.setUTCDate(d.getUTCDate() + 1);\n  endExclusive = d.toISOString().slice(0,10);\n}\nconst dates = [];\nlet cur = new Date(start + 'T00:00:00Z');\nconst end = new Date(endExclusive + 'T00:00:00Z');\nwhile (cur < end) {\n  dates.push(cur.toISOString().slice(0,10));\n  cur.setUTCDate(cur.getUTCDate() + 1);\n}\nreturn [{ json: { ...j, ok: true, dates, start, endExclusive } }];\n"
+      }
+    },
+    {
+      "id": "ifblock",
+      "name": "IF Block OK",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        940,
+        -200
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "1",
+              "leftValue": "={{ $json.ok }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "split",
+      "name": "Split Dates",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1160,
+        -260
+      ],
+      "parameters": {
+        "jsCode": "const j=$input.first().json; return j.dates.map(d=>({json:{date:d, chatId:j.chatId}}));"
+      }
+    },
+    {
+      "id": "airblock",
+      "name": "Airtable Block",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1380,
+        -320
+      ],
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "8V0JrT9oUrPlDQul",
+          "name": "Airtable Personal Access bitreuven"
+        }
+      },
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.airtable.com/v0/appSP419jrkoX3u3x/tblrEehaTbBzD4izM",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "airtableTokenApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ fields: { Date: $json.date, Source: 'manual', Reason: 'telegram-/block' } }) }}",
+        "options": {}
+      },
+      "continueOnFail": true
+    },
+    {
+      "id": "sbblock",
+      "name": "Supabase Block",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1380,
+        -160
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://ufpgwuyijewmbuevyyby.supabase.co/rest/v1/blocked_dates",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "***JWT***"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer ***JWT***"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ date: $json.date, source: 'manual', reason: 'telegram-/block' }) }}",
+        "options": {}
+      },
+      "continueOnFail": true
+    },
+    {
+      "id": "agg",
+      "name": "Agg Blocks",
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        1600,
+        -320
+      ],
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "options": {}
+      }
+    },
+    {
+      "id": "replyblock",
+      "name": "Reply Block Done",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1820,
+        -260
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "8K4uLUGikVrC2jmD",
+          "name": "מעקב מסחר Telegram"
+        }
+      },
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "={{ $('Build Block Dates').item.json.chatId }}",
+        "text": "={{ '✅ נחסמו ' + ($('Build Block Dates').item.json.dates||[]).length + ' תאריכים ב-Airtable+Supabase: ' + ($('Build Block Dates').item.json.dates||[]).join(', ') }}",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "HTML"
+        }
+      },
+      "webhookId": "bdb43707-be24-4521-8ba0-5ff18387fd77"
+    },
+    {
+      "id": "replybad",
+      "name": "Reply Block Usage",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1160,
+        -80
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "8K4uLUGikVrC2jmD",
+          "name": "מעקב מסחר Telegram"
+        }
+      },
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "={{ $json.chatId }}",
+        "text": "={{ $json.reply }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "webhookId": "e281110c-f1ae-485b-a0dd-dcf7e02279f9"
+    },
+    {
+      "id": "statusprep",
+      "name": "Status Prep",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        720,
+        40
+      ],
+      "parameters": {
+        "jsCode": "const j=$input.first().json; const today=new Date().toISOString().slice(0,10); return [{json:{...j, today}}];"
+      }
+    },
+    {
+      "id": "statusq",
+      "name": "Query Status",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        940,
+        40
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "=https://ufpgwuyijewmbuevyyby.supabase.co/rest/v1/bookings?status=eq.paid&select=guest_name,phone,checkin,checkout,status&checkin=lte.{{$json.today}}&checkout=gt.{{$json.today}}&order=checkin.asc&limit=5",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "***JWT***"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer ***JWT***"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "continueOnFail": true,
+      "alwaysOutputData": true
+    },
+    {
+      "id": "replystatus",
+      "name": "Reply Status",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1160,
+        40
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "8K4uLUGikVrC2jmD",
+          "name": "מעקב מסחר Telegram"
+        }
+      },
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "={{ $json.chatId }}",
+        "text": "={{ $json.text }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "webhookId": "4be04535-1fc7-4bf5-8645-06815ef84a78"
+    },
+    {
+      "id": "todayprep",
+      "name": "Today Prep",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        720,
+        160
+      ],
+      "parameters": {
+        "jsCode": "const j=$input.first().json; const today=new Date().toISOString().slice(0,10); return [{json:{...j, today}}];"
+      }
+    },
+    {
+      "id": "todayq",
+      "name": "Query Today",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        940,
+        160
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "=https://ufpgwuyijewmbuevyyby.supabase.co/rest/v1/bookings?select=guest_name,phone,checkin,checkout,status&or=(checkin.eq.{{$json.today}},checkout.eq.{{$json.today}})&order=checkin.asc",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "***JWT***"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer ***JWT***"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "continueOnFail": true
+    },
+    {
+      "id": "replytoday",
+      "name": "Reply Today",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1160,
+        160
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "8K4uLUGikVrC2jmD",
+          "name": "מעקב מסחר Telegram"
+        }
+      },
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "={{ $('Parse Command').item.json.chatId }}",
+        "text": "={{ (() => { const rows = Array.isArray($json) ? $json : []; const t=$('Today Prep').item.json.today; if (!rows.length) return 'אין כניסות/יציאות היום'; const cin=rows.filter(r=>r.checkin===t); const cout=rows.filter(r=>r.checkout===t); return 'היום:\\nכניסות: '+(cin.map(r=>r.guest_name).join(', ')||'-')+'\\nיציאות: '+(cout.map(r=>r.guest_name).join(', ')||'-'); })() }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "webhookId": "b7ad035e-57eb-47df-a2a3-8c10c9f94132"
+    },
+    {
+      "id": "replyhelp",
+      "name": "Reply Help",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        720,
+        280
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "8K4uLUGikVrC2jmD",
+          "name": "מעקב מסחר Telegram"
+        }
+      },
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "={{ $json.chatId }}",
+        "text": "פקודות Ashkelon:\n/status - מי בדירה\n/today - כניסות/יציאות היום\n/block 10-12.10 - חסימת תאריכים\n/price - בקרוב",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "webhookId": "1c09bb2f-28bb-472a-8b0d-ae483d9da1bd"
+    },
+    {
+      "id": "testwh",
+      "name": "Test Cmd Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        -200
+      ],
+      "webhookId": "ashkelon-cmd-test",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ashkelon-cmd-test",
+        "responseMode": "lastNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "testnorm",
+      "name": "Wrap Test Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        200,
+        -200
+      ],
+      "parameters": {
+        "jsCode": "const b=$input.first().json.body||$input.first().json; return [{json:{message:{text:b.text||b.command, chat:{id:b.chatId||8503731042}}}}];"
+      }
+    },
+    {
+      "id": "fmtstatus",
+      "name": "Format Status",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1050,
+        40
+      ],
+      "parameters": {
+        "jsCode": "\nlet rows = $input.all().map(i=>i.json);\nif (rows.length===1 && Array.isArray(rows[0])) rows = rows[0];\nif (rows.length===1 && rows[0] && rows[0].error) rows = [];\nif (!Array.isArray(rows)) rows = [];\n// filter non-booking objects\nrows = rows.filter(r => r && r.guest_name);\nconst chatId = $('Parse Command').item.json.chatId;\nconst text = rows.length\n  ? ('מי בדירה עכשיו:\\n' + rows.map(r => `${r.guest_name} | ${r.phone}\\n${r.checkin} עד ${r.checkout} | ${r.status}`).join('\\n\\n'))\n  : 'הדירה פנויה כרגע (אין הזמנה paid היום)';\nreturn [{ json: { chatId, text, count: rows.length } }];\n"
+      }
+    }
+  ],
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Parse Command",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Command": {
+      "main": [
+        [
+          {
+            "node": "Switch Action",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch Action": {
+      "main": [
+        [
+          {
+            "node": "Build Block Dates",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Status Prep",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Today Prep",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Reply Help",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Block Dates": {
+      "main": [
+        [
+          {
+            "node": "IF Block OK",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Block OK": {
+      "main": [
+        [
+          {
+            "node": "Split Dates",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Reply Block Usage",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Dates": {
+      "main": [
+        [
+          {
+            "node": "Airtable Block",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Supabase Block",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Airtable Block": {
+      "main": [
+        [
+          {
+            "node": "Agg Blocks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agg Blocks": {
+      "main": [
+        [
+          {
+            "node": "Reply Block Done",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Status Prep": {
+      "main": [
+        [
+          {
+            "node": "Query Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Status": {
+      "main": [
+        [
+          {
+            "node": "Format Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Today Prep": {
+      "main": [
+        [
+          {
+            "node": "Query Today",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Today": {
+      "main": [
+        [
+          {
+            "node": "Reply Today",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Test Cmd Webhook": {
+      "main": [
+        [
+          {
+            "node": "Wrap Test Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wrap Test Message": {
+      "main": [
+        [
+          {
+            "node": "Parse Command",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Status": {
+      "main": [
+        [
+          {
+            "node": "Reply Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
