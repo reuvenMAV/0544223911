@@ -1,0 +1,155 @@
+{
+  "name": "ASK-05 Pre-Arrival",
+  "nodes": [
+    {
+      "id": "cron",
+      "name": "Cron Hourly",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 1
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "code",
+      "name": "Find Upcoming",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ],
+      "parameters": {
+        "jsCode": "const today=new Date(); const d24=new Date(today); d24.setDate(d24.getDate()+1); const d72=new Date(today); d72.setDate(d72.getDate()+3); const iso=d=>d.toISOString().slice(0,10); return [{json:{d24:iso(d24), d72:iso(d72)}}];"
+      }
+    },
+    {
+      "id": "q",
+      "name": "Query Bookings",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        0
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "=https://ufpgwuyijewmbuevyyby.supabase.co/rest/v1/bookings?select=*&status=eq.paid&or=(checkin.eq.{{$json.d24}},checkin.eq.{{$json.d72}})",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "***JWT***"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer ***JWT***"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "continueOnFail": true
+    },
+    {
+      "id": "fmt",
+      "name": "Format Alerts",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        660,
+        0
+      ],
+      "parameters": {
+        "jsCode": "\nconst rows = Array.isArray($json) ? $json : [];\nif (!rows.length) return [];\nreturn rows.map(r => ({\n  json: {\n    chatId: '8503731042',\n    text: `Pre-Arrival\\n${r.guest_name} | ${r.phone}\\nCheckin: ${r.checkin}\\nWallet: https://ashkelon-site.vercel.app/w/${r.wallet_token || ''}\\n(Nuki code: pending Phase 5)`\n  }\n}));\n"
+      }
+    },
+    {
+      "id": "tg",
+      "name": "Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        880,
+        0
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "8K4uLUGikVrC2jmD",
+          "name": "מעקב מסחר Telegram"
+        }
+      },
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "={{ $json.chatId }}",
+        "text": "={{ $json.text }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "webhookId": "60e8857a-49b4-4e84-8fd9-5543d607dd50"
+    }
+  ],
+  "connections": {
+    "Cron Hourly": {
+      "main": [
+        [
+          {
+            "node": "Find Upcoming",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find Upcoming": {
+      "main": [
+        [
+          {
+            "node": "Query Bookings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Bookings": {
+      "main": [
+        [
+          {
+            "node": "Format Alerts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Alerts": {
+      "main": [
+        [
+          {
+            "node": "Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

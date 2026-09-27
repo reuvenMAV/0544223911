@@ -1,0 +1,93 @@
+{
+  "base_id": "appSP419jrkoX3u3x",
+  "base_name": "Ashkelon Sea View",
+  "tables": [
+    {
+      "id": "tblyFmbe9v2pzmKOv",
+      "name": "📅 Bookings",
+      "fields": [
+        "Booking ID",
+        "Guest Name",
+        "Phone",
+        "Email",
+        "Checkin",
+        "Checkout",
+        "Nights",
+        "Guests",
+        "Total ₪",
+        "Status",
+        "Source",
+        "Wallet Token",
+        "PayPlus Transaction"
+      ]
+    },
+    {
+      "id": "tblrEehaTbBzD4izM",
+      "name": "🚫 Blocked Dates",
+      "fields": [
+        "Date",
+        "Source",
+        "Reason"
+      ]
+    },
+    {
+      "id": "tblsgHv03Hpjqcl2q",
+      "name": "👥 Guests CRM (legacy phone)",
+      "fields": [
+        "Phone",
+        "Name",
+        "Total Stays",
+        "VIP?",
+        "Tags",
+        "Phone Key"
+      ]
+    },
+    {
+      "id": "tblc9rRXfTW3Nupzq",
+      "name": "🧹 Cleaning",
+      "fields": [
+        "Booking",
+        "Checkout Date",
+        "Status",
+        "Cleaner",
+        "Telegram Sent?"
+      ]
+    },
+    {
+      "id": "tblZazjrGfQrnW5zp",
+      "name": "🏠 Properties",
+      "fields": [
+        "Name",
+        "Address",
+        "Max Guests",
+        "Base Price",
+        "Weekend Price",
+        "Cleaning Fee",
+        "Status"
+      ]
+    },
+    {
+      "id": "tblNTnmZlwEbVIsGx",
+      "name": "💰 Pricing Rules",
+      "fields": [
+        "Name",
+        "Type",
+        "Start Date",
+        "End Date",
+        "Price ₪",
+        "Active?"
+      ]
+    },
+    {
+      "id": "tbldxcRfVxxZb5AtJ",
+      "name": "👥 Guests CRM",
+      "fields": [
+        "Phone",
+        "Name",
+        "Total Stays",
+        "VIP?",
+        "Tags"
+      ]
+    }
+  ]
+}

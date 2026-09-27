@@ -1,0 +1,155 @@
+{
+  "name": "ASK-07 Post-Stay ביקורת",
+  "nodes": [
+    {
+      "id": "cron",
+      "name": "Cron Daily 10:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 10 * * *"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "code",
+      "name": "Yesterday",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ],
+      "parameters": {
+        "jsCode": "const d=new Date(); d.setDate(d.getDate()-1); return [{json:{yesterday:d.toISOString().slice(0,10)}}];"
+      }
+    },
+    {
+      "id": "q",
+      "name": "Query Checkouts",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        0
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "=https://ufpgwuyijewmbuevyyby.supabase.co/rest/v1/bookings?select=*&status=eq.paid&checkout=eq.{{$json.yesterday}}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "***JWT***"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer ***JWT***"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "continueOnFail": true
+    },
+    {
+      "id": "fmt",
+      "name": "Format Review",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        660,
+        0
+      ],
+      "parameters": {
+        "jsCode": "\nconst rows = Array.isArray($json) ? $json : [];\nif (!rows.length) return [];\nreturn rows.map(r => ({\n  json: {\n    chatId: '8503731042',\n    text: `Post-Stay ביקורת\\n${r.guest_name} | ${r.phone}\\nCheckout: ${r.checkout}\\nשלח לינק לביקורת Google (Phase 5 WA)`\n  }\n}));\n"
+      }
+    },
+    {
+      "id": "tg",
+      "name": "Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        880,
+        0
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "8K4uLUGikVrC2jmD",
+          "name": "מעקב מסחר Telegram"
+        }
+      },
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "={{ $json.chatId }}",
+        "text": "={{ $json.text }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "webhookId": "35b657c4-e6ae-467c-af17-df7eacb7be58"
+    }
+  ],
+  "connections": {
+    "Cron Daily 10:00": {
+      "main": [
+        [
+          {
+            "node": "Yesterday",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Yesterday": {
+      "main": [
+        [
+          {
+            "node": "Query Checkouts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Checkouts": {
+      "main": [
+        [
+          {
+            "node": "Format Review",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Review": {
+      "main": [
+        [
+          {
+            "node": "Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

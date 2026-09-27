@@ -1,0 +1,74 @@
+{
+  "name": "ASK-08b Payment Success",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "payment-success",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "wh_payment-success",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        240,
+        300
+      ],
+      "webhookId": "wh_payment-success"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"ok\": true, \"workflow\": $workflow.name, \"received\": $json } }}",
+        "options": {}
+      },
+      "id": "rs_payment-success",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        480,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## ASK-08b Payment Success\nAlias success from PayPlus route\n\nURL: `https://n8n.mavash.net/webhook/payment-success`\n\nחובה: Activate אחרי import. חבר כאן Telegram / Sheets / WA לפי README_CONNECTIONS.",
+        "height": 320,
+        "width": 360
+      },
+      "id": "nt_payment-success",
+      "name": "Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        220,
+        40
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": false,
+  "tags": [
+    {
+      "name": "ashkelon"
+    }
+  ]
+}

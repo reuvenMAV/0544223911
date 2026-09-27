@@ -1,0 +1,92 @@
+{
+  "name": "ASK-14 גיבוי והתראות",
+  "nodes": [
+    {
+      "id": "cron",
+      "name": "Cron",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 2 * * *"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "code",
+      "name": "Build Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        0
+      ],
+      "parameters": {
+        "jsCode": "return [{ json: { chatId: '8503731042', text: `גיבוי יומי 02:00 — ודא Drive backup (Phase 3 scaffold)` } }];"
+      }
+    },
+    {
+      "id": "tg",
+      "name": "Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        480,
+        0
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "8K4uLUGikVrC2jmD",
+          "name": "מעקב מסחר Telegram"
+        }
+      },
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "={{ $json.chatId }}",
+        "text": "={{ $json.text }}",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "HTML"
+        }
+      },
+      "webhookId": "ad8a7aa9-bc31-4189-920f-cc346bf4068b"
+    }
+  ],
+  "connections": {
+    "Cron": {
+      "main": [
+        [
+          {
+            "node": "Build Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Message": {
+      "main": [
+        [
+          {
+            "node": "Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
