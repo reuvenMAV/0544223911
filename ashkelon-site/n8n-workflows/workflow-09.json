@@ -1,0 +1,19 @@
+{
+  "name": "ASK-9",
+  "nodes": [
+    {
+      "type": "n8n-nodes-base.webhook",
+      "name": "Webhook",
+      "notes": "Respond 200 immediately"
+    },
+    {
+      "type": "n8n-nodes-base.function",
+      "name": "Logic"
+    },
+    {
+      "type": "n8n-nodes-base.telegram",
+      "name": "Telegram"
+    }
+  ],
+  "connections": {}
+}

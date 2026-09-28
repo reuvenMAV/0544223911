@@ -1,0 +1,312 @@
+{
+  "name": "ASK-11 Airtable MASTER Sync",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ashkelon-new-booking",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-ashkelon",
+      "name": "Webhook - New Booking",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "ashkelon-new-booking-webhook"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "c1",
+              "leftValue": "={{ $json.booking_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-booking",
+      "name": "IF Has Booking",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        300,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.airtable.com/v0/appSP419jrkoX3u3x/tblyFmbe9v2pzmKOv",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "airtableTokenApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ fields: ({\n  'Booking ID': $json.booking_id,\n  'Guest Name': $json.guest_name,\n  'Phone': $json.phone,\n  'Email': $json.email || '',\n  'Checkin': $json.checkin,\n  'Checkout': $json.checkout,\n  'Nights': $json.nights,\n  'Guests': $json.guests_count,\n  'Total ₪': $json.total,\n  'Status': $json.status || 'Paid',\n  'Source': $json.source || 'direct_website',\n  'Wallet Token': $json.wallet_token,\n  'PayPlus Transaction': $json.payplus_trx || ''\n}) }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": false,
+              "neverError": false
+            }
+          }
+        }
+      },
+      "id": "airtable-bookings",
+      "name": "Airtable - Create Booking",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        600,
+        -200
+      ],
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "8V0JrT9oUrPlDQul",
+          "name": "Airtable Personal Access bitreuven"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.airtable.com/v0/appSP419jrkoX3u3x/tblrEehaTbBzD4izM",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "airtableTokenApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ fields: ({ 'Date': $json.date, 'Source': 'direct_booking', 'Reason': $json.booking_id }) }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": false,
+              "neverError": false
+            }
+          }
+        }
+      },
+      "id": "airtable-blocked",
+      "name": "Airtable - Blocked Dates",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        600,
+        100
+      ],
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "8V0JrT9oUrPlDQul",
+          "name": "Airtable Personal Access bitreuven"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const checkin = new Date($input.first().json.checkin);\nconst checkout = new Date($input.first().json.checkout);\nconst dates = [];\nlet curr = new Date(checkin);\nwhile (curr < checkout) {\n  dates.push({\n    date: curr.toISOString().split('T')[0],\n    booking_id: $input.first().json.booking_id,\n    source: 'direct_booking'\n  });\n  curr.setDate(curr.getDate()+1);\n}\nreturn dates.map(d => ({json: d}));"
+      },
+      "id": "split-dates",
+      "name": "Split Dates Loop",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        450,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "https://api.airtable.com/v0/appSP419jrkoX3u3x/tbldxcRfVxxZb5AtJ",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "airtableTokenApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ performUpsert: { fieldsToMergeOn: ['Phone'] }, records: [{ fields: { Phone: String($('Normalize Payload').item.json.phone), Name: $('Normalize Payload').item.json.guest_name } }] }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": false,
+              "neverError": false
+            }
+          }
+        }
+      },
+      "id": "airtable-guests",
+      "name": "Airtable - Upsert Guest",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        600,
+        400
+      ],
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "8V0JrT9oUrPlDQul",
+          "name": "Airtable Personal Access bitreuven"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.airtable.com/v0/appSP419jrkoX3u3x/tblc9rRXfTW3Nupzq",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "airtableTokenApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ fields: ({\n  'Booking': $('Airtable - Create Booking').item.json.id,\n  'Checkout Date': $('Normalize Payload').item.json.checkout,\n  'Status': 'To Clean',\n  'Telegram Sent?': false\n}) }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": false,
+              "neverError": false
+            }
+          }
+        }
+      },
+      "id": "airtable-cleaning",
+      "name": "Airtable - Create Cleaning Task",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        900,
+        -200
+      ],
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "8V0JrT9oUrPlDQul",
+          "name": "Airtable Personal Access bitreuven"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { success: true, airtable_booking: $('Airtable - Create Booking').item.json.id, message: '4 records created', booking_id: $('Normalize Payload').item.json.booking_id } }}",
+        "options": {}
+      },
+      "id": "respond",
+      "name": "Respond Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1200,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json;\nconst body = item.body || item;\nreturn [{\n  json: {\n    ...body,\n    // keep originals if needed\n    _raw: item,\n  }\n}];"
+      },
+      "id": "normalize-payload",
+      "name": "Normalize Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        150,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook - New Booking": {
+      "main": [
+        [
+          {
+            "node": "Normalize Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Has Booking": {
+      "main": [
+        [
+          {
+            "node": "Airtable - Create Booking",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Split Dates Loop",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Airtable - Upsert Guest",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Airtable - Create Booking": {
+      "main": [
+        [
+          {
+            "node": "Airtable - Create Cleaning Task",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Dates Loop": {
+      "main": [
+        [
+          {
+            "node": "Airtable - Blocked Dates",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Airtable - Create Cleaning Task": {
+      "main": [
+        [
+          {
+            "node": "Respond Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Payload": {
+      "main": [
+        [
+          {
+            "node": "IF Has Booking",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

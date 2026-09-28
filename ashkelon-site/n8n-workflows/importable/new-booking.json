@@ -1,0 +1,74 @@
+{
+  "name": "ASK-02 Core Booking",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "new-booking",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "wh_new-booking",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        240,
+        300
+      ],
+      "webhookId": "wh_new-booking"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"ok\": true, \"workflow\": $workflow.name, \"received\": $json } }}",
+        "options": {}
+      },
+      "id": "rs_new-booking",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        480,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## ASK-02 Core Booking\nCore booking ASK payload from /api/new-booking\n\nURL: `https://n8n.mavash.net/webhook/new-booking`\n\nחובה: Activate אחרי import. חבר כאן Telegram / Sheets / WA לפי README_CONNECTIONS.",
+        "height": 320,
+        "width": 360
+      },
+      "id": "nt_new-booking",
+      "name": "Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        220,
+        40
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": false,
+  "tags": [
+    {
+      "name": "ashkelon"
+    }
+  ]
+}

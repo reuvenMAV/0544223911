@@ -1,0 +1,49 @@
+{
+  "name": "ASK-12 אימות וחוזה",
+  "active": false,
+  "nodes": [
+    {
+      "id": "webhook",
+      "type": "n8n-nodes-base.webhook",
+      "name": "Webhook",
+      "parameters": {
+        "path": "POST /verify",
+        "respond": "Immediately 200"
+      },
+      "notes": "חובה 200 תוך 2 שניות"
+    },
+    {
+      "id": "supabase",
+      "type": "n8n-nodes-base.supabase",
+      "name": "Supabase",
+      "parameters": {}
+    },
+    {
+      "id": "telegram",
+      "type": "n8n-nodes-base.telegram",
+      "name": "Telegram"
+    },
+    {
+      "id": "whatsapp",
+      "type": "n8n-nodes-base.httpRequest",
+      "name": "WhatsApp wa_llm"
+    }
+  ],
+  "trigger": "POST /verify",
+  "actions": "ת.ז + חתימה SignNow",
+  "payload_example": {
+    "event": "new_booking",
+    "booking_id": "ASK-1029",
+    "guest": {
+      "name": "ישראל ישראלי",
+      "phone": "0501234567"
+    },
+    "dates": {
+      "checkin": "2026-09-20",
+      "checkout": "2026-09-22"
+    },
+    "pricing": {
+      "total": 2150
+    }
+  }
+}
