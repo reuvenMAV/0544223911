@@ -1,0 +1,26 @@
+{
+  "name": "ASK-10 Telegram Management Menu",
+  "nodes": [
+    {
+      "name": "Telegram Trigger",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "params": {
+        "updates": [
+          "message",
+          "callback_query"
+        ]
+      }
+    },
+    {
+      "name": "Supabase - Get Status",
+      "type": "n8n-nodes-base.supabase"
+    },
+    {
+      "name": "Telegram - Send Menu",
+      "type": "n8n-nodes-base.telegram",
+      "params": {
+        "text": "Main menu with inline buttons"
+      }
+    }
+  ]
+}

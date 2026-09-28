@@ -1,0 +1,34 @@
+{
+  "name": "ASK-13 Cleaning Kanban Telegram <-> Airtable",
+  "trigger": "checkout event T+0",
+  "steps": [
+    {
+      "step": 1,
+      "action": "Supabase checkout -> Create Cleaning Task status=To Clean"
+    },
+    {
+      "step": 2,
+      "action": "Airtable Create in 🧹 Cleaning Status=To Clean"
+    },
+    {
+      "step": 3,
+      "action": "Telegram Send to Cleaner with inline buttons [התחלתי] [סיימתי + תמונות]"
+    },
+    {
+      "step": 4,
+      "action": "On callback clean_start -> Update Airtable Status=In Progress + Supabase + Notify Reuven"
+    },
+    {
+      "step": 5,
+      "action": "On 6 photos -> Upload to Drive /cleaning-photos/ + Airtable Photos field + Status=Done"
+    },
+    {
+      "step": 6,
+      "action": "On approve_clean -> Airtable Status=Photo OK + Google Calendar unblock for next guest"
+    }
+  ],
+  "airtable_views": {
+    "Kanban": "To Clean | In Progress | Done | Photo OK",
+    "Automation": "When Status changes to Photo OK -> Trigger /pre-arrival workflow"
+  }
+}
