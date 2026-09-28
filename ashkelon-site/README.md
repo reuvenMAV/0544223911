@@ -18,7 +18,7 @@ Next.js site for דירת נופש אשקלון, wired to `n8n.mavash.net` webho
 ```
 N8N_WEBHOOK_BASE=https://newsite.mavash.net/webhook
 N8N_API_KEY=...
-NEXT_PUBLIC_SITE_URL=https://ashkelon-site.vercel.app
+NEXT_PUBLIC_SITE_URL=https://booking.mavash.net
 NEXT_PUBLIC_WA_NUMBER=972544223911
 # Optional later:
 NEXT_PUBLIC_SUPABASE_URL=

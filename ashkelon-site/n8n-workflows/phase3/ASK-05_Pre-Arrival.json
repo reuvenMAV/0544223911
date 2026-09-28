@@ -73,7 +73,7 @@
         0
       ],
       "parameters": {
-        "jsCode": "\nconst rows = Array.isArray($json) ? $json : [];\nif (!rows.length) return [];\nreturn rows.map(r => ({\n  json: {\n    chatId: '8503731042',\n    text: `Pre-Arrival\\n${r.guest_name} | ${r.phone}\\nCheckin: ${r.checkin}\\nWallet: https://ashkelon-site.vercel.app/w/${r.wallet_token || ''}\\n(Nuki code: pending Phase 5)`\n  }\n}));\n"
+        "jsCode": "\nconst rows = Array.isArray($json) ? $json : [];\nif (!rows.length) return [];\nreturn rows.map(r => ({\n  json: {\n    chatId: '8503731042',\n    text: `Pre-Arrival\\n${r.guest_name} | ${r.phone}\\nCheckin: ${r.checkin}\\nWallet: https://booking.mavash.net/w/${r.wallet_token || ''}\\n(Nuki code: pending Phase 5)`\n  }\n}));\n"
       }
     },
     {

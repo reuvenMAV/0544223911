@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
         event: 'chat_to_wa',
         phone: phoneMatch[0],
         message,
-        booking_link: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://ashkelon-site.vercel.app'}/book`,
+        booking_link: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://booking.mavash.net'}/book`,
         timestamp: new Date().toISOString(),
       })
     }

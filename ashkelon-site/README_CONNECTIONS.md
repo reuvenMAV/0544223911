@@ -39,7 +39,7 @@ GOOGLE_SHEETS_ID=...
 GOOGLE_DRIVE_BACKUP_FOLDER_ID=...
 
 # Site
-NEXT_PUBLIC_SITE_URL=https://ashkelon.mavash.net
+NEXT_PUBLIC_SITE_URL=https://booking.mavash.net
 NEXT_PUBLIC_WA_NUMBER=9725XXXXXXXX
 ```
 
@@ -66,7 +66,7 @@ NEXT_PUBLIC_WA_NUMBER=9725XXXXXXXX
 ### 3. PayPlus חיבור
 - יצירת Payment Page עם Tokenization ל-500ש פקדון
 - Apple Pay: לאמת דומיין ב-Stripe Dashboard + קובץ .well-known
-- Webhook IPN: https://ashkelon.mavash.net/api/webhook/payplus -> שולח ל-n8n /payment-status
+- Webhook IPN: https://booking.mavash.net/api/webhook/payplus -> שולח ל-n8n /payment-status
 
 ### 4. Nuki
 - GET /smartlock/{id}/auth -> קוד זמני לפי checkin/out

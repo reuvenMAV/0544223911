@@ -913,7 +913,7 @@ if (!rows.length) return [];
 return rows.map(r => ({
   json: {
     chatId: '8503731042',
-    text: `Pre-Arrival\n${r.guest_name} | ${r.phone}\nCheckin: ${r.checkin}\nWallet: https://ashkelon-site.vercel.app/w/${r.wallet_token || ''}\n(Nuki code: pending Phase 5)`
+    text: `Pre-Arrival\n${r.guest_name} | ${r.phone}\nCheckin: ${r.checkin}\nWallet: https://booking.mavash.net/w/${r.wallet_token || ''}\n(Nuki code: pending Phase 5)`
   }
 }));
 """

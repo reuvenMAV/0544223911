@@ -158,7 +158,7 @@ bot.hears('📊 סטטוס היום', async (ctx) => {
   await ctx.reply(
     `📊 *סטטוס ${today}*\n` +
       `${guest?.length ? `👤 ${guest[0].guest_name}` : blocked?.length ? '🔴 חסום' : '🟢 פנוי'}\n` +
-      `אתר: https://ashkelon.mavash.net`,
+      `אתר: https://booking.mavash.net`,
     { parse_mode: 'Markdown', ...mainMenu },
   )
 })

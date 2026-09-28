@@ -174,12 +174,12 @@
 ### PHASE 6 - דומיין + GO LIVE (30 דק')
 
 - [ ] **6.1 חבר דומיין**
-  - Vercel -> Settings -> Domains -> `ashkelon.mavash.net`
+  - Vercel -> Settings -> Domains -> `booking.mavash.net`
   - Cloudflare DNS -> CNAME
-  - בדיקה: ashkelon.mavash.net עובד
+  - בדיקה: booking.mavash.net עובד
 
 - [ ] **6.2 בדיקת קצה לקצה מלאה**
-  - לקוח מזמין ב-ashkelon.mavash.net -> PayPlus -> Supabase paid -> Airtable 4 רשומות -> Telegram לך + מנקה -> T-24h קוד Nuki + /w/ -> Checkout -> ניקיון Kanban -> Post-Stay ביקורת
+  - לקוח מזמין ב-booking.mavash.net -> PayPlus -> Supabase paid -> Airtable 4 רשומות -> Telegram לך + מנקה -> T-24h קוד Nuki + /w/ -> Checkout -> ניקיון Kanban -> Post-Stay ביקורת
 
 **✅ אישור סופי:** "כל הפרויקט חי - תפוסה 73%"
 
