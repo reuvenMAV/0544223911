@@ -1,0 +1,74 @@
+{
+  "name": "ASK-15 Chatbot Lead",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "chatbot-lead",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "wh_chatbot-lead",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        240,
+        300
+      ],
+      "webhookId": "wh_chatbot-lead"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"ok\": true, \"workflow\": $workflow.name, \"received\": $json } }}",
+        "options": {}
+      },
+      "id": "rs_chatbot-lead",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        480,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## ASK-15 Chatbot Lead\nChat widget leads\n\nURL: `https://n8n.mavash.net/webhook/chatbot-lead`\n\nחובה: Activate אחרי import. חבר כאן Telegram / Sheets / WA לפי README_CONNECTIONS.",
+        "height": 320,
+        "width": 360
+      },
+      "id": "nt_chatbot-lead",
+      "name": "Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        220,
+        40
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": false,
+  "tags": [
+    {
+      "name": "ashkelon"
+    }
+  ]
+}

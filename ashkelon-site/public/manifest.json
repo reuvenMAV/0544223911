@@ -1,0 +1,11 @@
+{
+  "name": "אשקלון סיסייד - דירת נופש",
+  "short_name": "אשקלון סיסייד",
+  "description": "דירת נופש 2 דק' מהים באשקלון — עם ממ״ד, חניה, מרפסת לים",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#1a56db",
+  "lang": "he",
+  "dir": "rtl"
+}

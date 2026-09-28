@@ -1,0 +1,222 @@
+{
+  "name": "ASK-04 סנכרון iCal",
+  "nodes": [
+    {
+      "id": "cron",
+      "name": "Cron 1h",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 1
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "wh",
+      "name": "Manual Sync Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        200
+      ],
+      "webhookId": "ashkelon-ical-sync",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ashkelon-ical-sync",
+        "responseMode": "lastNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "urls",
+      "name": "Resolve URLs",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        80
+      ],
+      "parameters": {
+        "jsCode": "\nconst body = ($input.first().json.body || $input.first().json) || {};\nconst urls = [];\nconst airbnb = body.airbnb_ical || '' || '';\nconst booking = body.booking_ical || '' || '';\nif (airbnb) urls.push({ source: 'airbnb', url: airbnb });\nif (booking) urls.push({ source: 'booking.com', url: booking });\nif (body.ics_text) return [{ json: { source: body.source || 'manual', ics_text: body.ics_text, mode: 'text' } }];\nif (!urls.length) return [{ json: { error: 'no_ical_urls', message: 'Set AIRBNB_ICAL_URL / BOOKING_ICAL_URL or POST ics_text' } }];\nreturn urls.map(u => ({ json: { ...u, mode: 'url' } }));\n"
+      }
+    },
+    {
+      "id": "fetch",
+      "name": "Fetch ICS",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        480,
+        0
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $json.url }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          }
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "id": "parse",
+      "name": "Parse ICS",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        720,
+        80
+      ],
+      "parameters": {
+        "jsCode": "\nconst item = $input.first().json;\nif (item.error) return [{ json: item }];\nconst source = item.source || 'airbnb';\nlet text = item.ics_text || item.data || item.body || '';\nif (typeof text !== 'string') text = JSON.stringify(text);\n// n8n http text may be in item itself when responseFormat text\nif (!item.ics_text && !item.url) {}\nif (item.url && typeof item === 'object') {\n  // when coming from Fetch, raw body often in item if neverError wrapper — try common keys\n  text = item.data || item.body || item.text || Object\n}\n// Prefer paired item from Fetch node\ntry {\n  const fetchJson = $input.first().json;\n  if (typeof fetchJson === 'string') text = fetchJson;\n} catch (e) {}\n\n// Better: read all input strings\nconst raw = $input.all().map(i => i.json);\nlet ics = '';\nlet src = source;\nfor (const r of raw) {\n  if (r.error) return [{ json: r }];\n  if (r.mode === 'text' && r.ics_text) { ics = r.ics_text; src = r.source; }\n}\nif (!ics) {\n  // Fetch node puts body as string json sometimes\n  const f = raw.find(r => typeof r === 'string') || raw[0];\n  if (typeof f === 'string') ics = f;\n  else if (f && typeof f.data === 'string') ics = f.data;\n  else if (f && f.url) {\n    // empty fetch\n    ics = '';\n    src = f.source || src;\n  }\n}\nif (!ics) return [{ json: { error: 'empty_ics', source: src } }];\n\nconst events = [];\nconst parts = ics.split('BEGIN:VEVENT');\nfor (const part of parts.slice(1)) {\n  const get = (k) => {\n    const re = new RegExp('^' + k + '[^:]*:(.+)$', 'mi');\n    const m = part.match(re);\n    return m ? m[1].trim() : '';\n  };\n  const dtstart = get('DTSTART').replace(/T.*/, '').replace(/-/g,'').slice(0,8);\n  const dtend = get('DTEND').replace(/T.*/, '').replace(/-/g,'').slice(0,8);\n  if (dtstart.length !== 8) continue;\n  const toIso = (s) => `${s.slice(0,4)}-${s.slice(4,6)}-${s.slice(6,8)}`;\n  let cur = new Date(toIso(dtstart) + 'T00:00:00Z');\n  const end = dtend.length === 8 ? new Date(toIso(dtend) + 'T00:00:00Z') : new Date(cur);\n  while (cur < end) {\n    events.push({ date: cur.toISOString().slice(0,10), source: src, reason: 'ical-sync' });\n    cur.setUTCDate(cur.getUTCDate() + 1);\n  }\n}\nif (!events.length) return [{ json: { error: 'no_events', source: src } }];\nreturn events.map(e => ({ json: e }));\n"
+      }
+    },
+    {
+      "id": "air",
+      "name": "Airtable Upsert Date",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        960,
+        40
+      ],
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "8V0JrT9oUrPlDQul",
+          "name": "Airtable Personal Access bitreuven"
+        }
+      },
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.airtable.com/v0/appSP419jrkoX3u3x/tblrEehaTbBzD4izM",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "airtableTokenApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ fields: { Date: $json.date, Source: $json.source, Reason: $json.reason } }) }}",
+        "options": {}
+      },
+      "continueOnFail": true
+    },
+    {
+      "id": "sb",
+      "name": "Supabase Upsert Date",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        960,
+        200
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://ufpgwuyijewmbuevyyby.supabase.co/rest/v1/blocked_dates",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "***JWT***"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer ***JWT***"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ date: $json.date, source: $json.source, reason: $json.reason }) }}",
+        "options": {}
+      },
+      "continueOnFail": true
+    }
+  ],
+  "connections": {
+    "Cron 1h": {
+      "main": [
+        [
+          {
+            "node": "Resolve URLs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Manual Sync Webhook": {
+      "main": [
+        [
+          {
+            "node": "Resolve URLs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resolve URLs": {
+      "main": [
+        [
+          {
+            "node": "Fetch ICS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch ICS": {
+      "main": [
+        [
+          {
+            "node": "Parse ICS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse ICS": {
+      "main": [
+        [
+          {
+            "node": "Airtable Upsert Date",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Supabase Upsert Date",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

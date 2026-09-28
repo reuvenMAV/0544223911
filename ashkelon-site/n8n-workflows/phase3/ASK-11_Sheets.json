@@ -1,0 +1,65 @@
+{
+  "name": "ASK-11 Sheets MASTER",
+  "nodes": [
+    {
+      "id": "wh",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "ashkelon-sheets-sync",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ashkelon-sheets-sync",
+        "responseMode": "lastNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "tg",
+      "name": "Telegram Ack",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        260,
+        0
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "8K4uLUGikVrC2jmD",
+          "name": "מעקב מסחר Telegram"
+        }
+      },
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "8503731042",
+        "text": "={{ 'Sheets MASTER stub: booking ' + (($json.body||$json).booking_id || '') }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "continueOnFail": true,
+      "webhookId": "39797938-ad40-4f4b-ba64-1ce66cf25f78"
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Telegram Ack",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
