@@ -31,6 +31,31 @@ export default function HomePage() {
           </p>
         </div>
       </section>
+
+        <section
+          dir="rtl"
+          className="mx-auto mt-10 w-full max-w-xl rounded-xl border border-teal-900/20 bg-white/70 p-4 text-center"
+        >
+          <h2 className="text-lg font-semibold text-teal-950">
+            ממשיכים גם בטלגרם
+          </h2>
+          <p className="mt-2 leading-8">
+            <a href="https://english.mavash.net/" target="_blank" rel="noopener" className="underline">
+              ספריית האנגלית
+            </a>
+            {" · "}
+            <a href="https://t.me/sponser555_bot" target="_blank" rel="noopener" className="underline">
+              בוט הקורסים - פרופסור 555
+            </a>
+            {" · "}
+            <a href="https://t.me/mavashenglish_bot" target="_blank" rel="noopener" className="underline">
+              BookSync - לימוד ותרגול
+            </a>
+          </p>
+          <p className="mt-2 text-sm text-teal-900/70">
+            בכל בוט: שלח /start ובחר 🦉 אוקספורד - ספרים וחומרים או 🗂 חומרי הלימוד שלי. חומרים פרטיים נשארים מאחורי הגישה האישית שלך.
+          </p>
+        </section>
     </main>
   );
 }
